@@ -181,18 +181,18 @@ export async function approveRequest(
 /
 ├── app/
 │   ├── (auth)/             # Route cho login, signup
-│   ├── (dashboard)/        # Layout chính sau khi đăng nhập
-│   │   ├── layout.tsx
+│   ├── (admin)/            # Route cho admin
+│   ├── (main)/             # Layout chính sau khi đăng nhập
 │   │   ├── requests/
 │   │   │   ├── [id]/
 │   │   │   │   └── page.tsx      # Trang chi tiết yêu cầu
 │   │   │   ├── new/
 │   │   │   │   └── page.tsx      # Trang tạo yêu cầu mới
-│   │   │   └── page.tsx          # Trang danh sách yêu cầu
-│   │   └── admin/            # Route cho admin
-│   │       └── workflows/    # Giao diện quản lý workflow
-│   ├── api/                  # (Nếu cần các API route truyền thống)
-│   └── page.tsx              # Trang chủ
+│   │   │   ├── page.tsx          # Trang danh sách yêu cầu
+│   │   │   └── actions.tsx       # Server Actions
+│   │   └── layout.tsx            # Layout chính sau khi đăng nhập
+│   ├── api/          # (Nếu cần các API route truyền thống)
+│   └── page.tsx      # Trang chủ
 ├── components/
 │   ├── ui/                   # Các component từ shadcn/ui
 │   ├── shared/               # Component dùng chung (Navbar, Sidebar, StatusBadge)
@@ -202,16 +202,19 @@ export async function approveRequest(
 │           ├── RequestList.tsx
 │           └── ApprovalHistory.tsx
 ├── lib/
-│   ├── supabase.ts           # Cấu hình Supabase client
+│   ├── supabase/
+│       └── client.ts         # Cấu hình Supabase client
+│       ├── middleware.ts     # Cấu hình middleware
+│       └── server.ts         # Cấu hình Supabase server
 │   └── utils.ts              # Các hàm tiện ích
 ├── hooks/
-│   └── use-user.ts           # Custom hook để lấy thông tin người dùng và vai trò
-├── store/
-│   └── user-store.ts         # Zustand store
+│   └── use-auth.ts           # Custom hook để lấy thông tin người dùng và vai trò
+├── stores/
+│   └── auth-store.ts         # Zustand store
 ├── types/
+│   └── database.types.ts     # Định nghĩa các kiểu dữ liệu từ Supabase
 │   └── index.ts              # Định nghĩa các kiểu dữ liệu (TypeScript)
-└── actions/
-    └── requestActions.ts     # Các Server Actions
+
 ```
 
 #### **2. Quản lý Trạng thái với Zustand & TanStack Query**
