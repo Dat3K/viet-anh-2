@@ -1,168 +1,149 @@
-import { Metadata } from 'next'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, CheckCircle, XCircle, Plus } from "lucide-react"
-
-export const metadata: Metadata = {
-  title: 'Requests',
-  description: 'Manage your requests',
-}
-
-// Mock data for demonstration
-const requests = [
-  {
-    id: '1',
-    title: 'Account Access Request',
-    status: 'pending',
-    date: '2025-01-09',
-    description: 'Request for admin access to user management system'
-  },
-  {
-    id: '2', 
-    title: 'Data Export Request',
-    status: 'approved',
-    date: '2025-01-08',
-    description: 'Export user data for Q4 reporting'
-  },
-  {
-    id: '3',
-    title: 'Feature Request',
-    status: 'rejected',
-    date: '2025-01-07',
-    description: 'Add dark mode toggle to dashboard'
-  },
-  {
-    id: '4',
-    title: 'System Maintenance',
-    status: 'pending',
-    date: '2025-01-06',
-    description: 'Schedule maintenance window for database upgrade'
-  }
-]
-
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'pending':
-      return <Clock className="h-4 w-4" />
-    case 'approved':
-      return <CheckCircle className="h-4 w-4" />
-    case 'rejected':
-      return <XCircle className="h-4 w-4" />
-    default:
-      return <Clock className="h-4 w-4" />
-  }
-}
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case 'pending':
-      return 'default'
-    case 'approved':
-      return 'default'
-    case 'rejected':
-      return 'destructive'
-    default:
-      return 'default'
-  }
-}
+import { FileText, Plus, Search, Filter } from "lucide-react"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { AuthenticatedLayout } from "@/components/layout/authenticated-layout"
 
 export default function RequestsPage() {
+
+  const requests = [
+    {
+      id: "1",
+      title: "Yêu cầu mua bút viết",
+      status: "pending",
+      priority: "medium",
+      createdAt: "2024-01-15",
+      department: "Toán học",
+    },
+    {
+      id: "2",
+      title: "Đề nghị in tài liệu",
+      status: "approved",
+      priority: "high",
+      createdAt: "2024-01-14",
+      department: "Văn học",
+    },
+    {
+      id: "3",
+      title: "Yêu cầu thiết bị trình chiếu",
+      status: "rejected",
+      priority: "low",
+      createdAt: "2024-01-13",
+      department: "Tin học",
+    },
+  ]
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge variant="default">Đã duyệt</Badge>
+      case "pending":
+        return <Badge variant="secondary">Chờ duyệt</Badge>
+      case "rejected":
+        return <Badge variant="destructive">Từ chối</Badge>
+      default:
+        return <Badge variant="outline">Không xác định</Badge>
+    }
+  }
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return <Badge className="bg-red-500">Cao</Badge>
+      case "medium":
+        return <Badge className="bg-yellow-500">Trung bình</Badge>
+      case "low":
+        return <Badge className="bg-green-500">Thấp</Badge>
+      default:
+        return <Badge variant="outline">Không xác định</Badge>
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Requests</h1>
-          <p className="text-muted-foreground">
-            Manage and track all your requests
-          </p>
-        </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Request
-        </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{requests.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {requests.filter(r => r.status === 'pending').length}
+    <ProtectedRoute>
+      <AuthenticatedLayout title="Quản Lý Yêu Cầu">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Yêu Cầu Của Tôi</h1>
+              <p className="text-muted-foreground">
+                Quản lý và theo dõi các yêu cầu vật tư, thiết bị
+              </p>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {requests.filter(r => r.status === 'approved').length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Tạo Yêu Cầu Mới
+            </Button>
+          </div>
 
-      {/* Requests list */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm yêu cầu..."
+                    className="w-full pl-10 pr-4 py-2 border rounded-md"
+                  />
+                </div>
+                <Button variant="outline" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Bộ lọc
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Requests List */}
           <div className="space-y-4">
             {requests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{request.title}</h3>
-                    <Badge 
-                      variant={getStatusColor(request.status) as 'default' | 'destructive'}
-                      className="text-xs"
-                    >
-                      <span className="mr-1">{getStatusIcon(request.status)}</span>
-                      {request.status}
-                    </Badge>
+              <Card key={request.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-lg">{request.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {request.department} • {request.createdAt}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getPriorityBadge(request.priority)}
+                      {getStatusBadge(request.status)}
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {request.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {request.date}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                  {request.status === 'pending' && (
-                    <Button size="sm">
-                      Approve
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm">
+                      Xem chi tiết
                     </Button>
-                  )}
-                </div>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          {requests.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Chưa có yêu cầu nào</h3>
+                <p className="text-muted-foreground mb-4">
+                  Bắt đầu bằng cách tạo yêu cầu đầu tiên của bạn
+                </p>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Tạo Yêu Cầu Mới
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </AuthenticatedLayout>
+    </ProtectedRoute>
   )
 }

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, CheckCircle, Shield, BookOpen, FileText, Users, ClipboardCheck, School } from "lucide-react"
+import { MicrosoftLoginCard } from "@/components/auth/microsoft-login-button"
 
 export default function Home() {
   return (
@@ -23,13 +24,12 @@ export default function Home() {
             duyệt yêu cầu vật tư và tài liệu một cách hiệu quả.
           </p>
           
+          {/* Microsoft Login Section */}
+          <div className="max-w-md mx-auto mb-8">
+            <MicrosoftLoginCard />
+          </div>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="text-lg px-8">
-              <Link href="/dashboard">
-                Vào Hệ Thống
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
             <Button asChild variant="outline" size="lg" className="text-lg px-8">
               <Link href="#features">
                 Tìm Hiểu Thêm
@@ -226,21 +226,6 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
-        </div>
-        
-        {/* CTA Section */}
-        <div className="text-center mt-16">
-          <h2 className="text-3xl font-bold mb-4">Sẵn sàng bắt đầu?</h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Truy cập hệ thống để tạo yêu cầu và quản lý quy trình duyệt 
-            một cách chuyên nghiệp.
-          </p>
-          <Button asChild size="lg" className="text-lg px-8">
-            <Link href="/dashboard">
-              Bắt Đầu Ngay
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
         </div>
       </div>
     </div>
