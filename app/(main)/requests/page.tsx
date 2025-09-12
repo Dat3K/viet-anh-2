@@ -2,8 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Plus, Search, Filter } from "lucide-react"
-import { ProtectedRoute } from "@/components/auth/protected-route"
-import { AuthenticatedLayout } from "@/components/layout/authenticated-layout"
 
 export default function RequestsPage() {
 
@@ -61,8 +59,13 @@ export default function RequestsPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <AuthenticatedLayout title="Quản Lý Yêu Cầu">
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4">
+          <h1 className="text-lg font-semibold">Quản Lý Yêu Cầu</h1>
+        </div>
+      </header>
+      <main className="container px-4 py-6">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -143,7 +146,7 @@ export default function RequestsPage() {
             </Card>
           )}
         </div>
-      </AuthenticatedLayout>
-    </ProtectedRoute>
+      </main>
+    </div>
   )
 }

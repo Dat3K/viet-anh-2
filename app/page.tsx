@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, CheckCircle, Shield, BookOpen, FileText, Users, ClipboardCheck, School } from "lucide-react"
-import { MicrosoftLoginCard } from "@/components/auth/microsoft-login-button"
 
 export default function Home() {
   return (
@@ -19,15 +18,10 @@ export default function Home() {
             <span className="text-primary block">Yêu Cầu Trường Học</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Hệ thống quản lý yêu cầu hiện đại cho Trường Trung Tiểu Học Việt Anh. 
-            Dành cho giáo viên, trưởng bộ môn và ban giám hiệu để quản lý quy trình 
+            Hệ thống quản lý yêu cầu hiện đại cho Trường Trung Tiểu Học Việt Anh.
+            Dành cho giáo viên, trưởng bộ môn và ban giám hiệu để quản lý quy trình
             duyệt yêu cầu vật tư và tài liệu một cách hiệu quả.
           </p>
-          
-          {/* Microsoft Login Section */}
-          <div className="max-w-md mx-auto mb-8">
-            <MicrosoftLoginCard />
-          </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild variant="outline" size="lg" className="text-lg px-8">

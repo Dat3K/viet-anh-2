@@ -1,21 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart3, Users, FileText, TrendingUp } from "lucide-react"
-import { ProtectedRoute } from "@/components/auth/protected-route"
-import { AuthenticatedLayout } from "@/components/layout/authenticated-layout"
-import { useAuth } from "@/hooks/use-auth-query"
 
 export default function AdminPage() {
-  const { user } = useAuth()
-
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AuthenticatedLayout title="Bảng Điều Khiển Quản Trị">
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4">
+          <h1 className="text-lg font-semibold">Bảng Điều Khiển Quản Trị</h1>
+        </div>
+      </header>
+      <main className="container px-4 py-6">
         <div className="space-y-6">
           {/* Page header */}
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard Quản Trị</h1>
             <p className="text-muted-foreground">
-              Chào mừng trở lại, {user?.full_name || 'Quản trị viên'}
+              Chào mừng đến với trang quản trị
             </p>
           </div>
 
@@ -130,7 +130,7 @@ export default function AdminPage() {
             </Card>
           </div>
         </div>
-      </AuthenticatedLayout>
-    </ProtectedRoute>
+      </main>
+    </div>
   )
 }

@@ -1,19 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, ClipboardCheck, Clock } from "lucide-react"
-import { ProtectedRoute } from "@/components/auth/protected-route"
-import { AuthenticatedLayout } from "@/components/layout/authenticated-layout"
-import { useAuth } from "@/hooks/use-auth-query"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-
   return (
-    <ProtectedRoute>
-      <AuthenticatedLayout title="Bảng Điều Khiển">
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4">
+          <h1 className="text-lg font-semibold">Bảng Điều Khiển</h1>
+        </div>
+      </header>
+      <main className="container px-4 py-6">
         <div className="space-y-6">
           {/* Welcome Header */}
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Chào mừng, {user?.full_name || 'bạn'}!</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Chào mừng đến với Hệ Thống!</h1>
             <p className="text-muted-foreground mt-1">
               Hệ thống quản lý yêu cầu - Trường Trung Tiểu Học Việt Anh
             </p>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </AuthenticatedLayout>
-    </ProtectedRoute>
+      </main>
+    </div>
   )
 }
