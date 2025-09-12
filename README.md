@@ -22,7 +22,7 @@ graph TD
     end
 
     subgraph "Supabase Platform (Cloud)"
-        F[Supabase Auth]
+        F[Supabase Auth (only Azure AD)]
         G[PostgreSQL Database]
         H[Row Level Security - RLS]
         I[Database Functions & Triggers]
@@ -364,11 +364,11 @@ export function RequestForm() {
 
 ## Testing Strategy
 
-*   **Unit Testing (Vitest/Jest):**
+*   **Unit Testing (Jest):**
     *   Test utility functions in `lib/utils.ts`.
     *   Test Zod schemas.
     *   Test simple UI components with React Testing Library (e.g., `StatusBadge` displaying correct colors for each status).
-*   **Integration Testing:**
+*   **Integration Testing (Playwright):**
     *   Test Server Components, mocking Supabase calls to verify business logic.
     *   Test `RequestForm` component to ensure validation works correctly and calls `onSubmit` with accurate data.
 *   **End-to-End Testing (Playwright):**

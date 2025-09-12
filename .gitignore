@@ -46,3 +46,15 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# web-bundles
+/web-bundles
+
+# bmad
+.bmad-core
+
+# windsurf
+.windsurf
+
+# roomodes
+.roomodes
