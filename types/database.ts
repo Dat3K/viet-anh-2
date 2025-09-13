@@ -14,10 +14,10 @@ export type AuditLog = Tables<'audit_logs'>
 export type Department = Tables<'departments'>
 export type Profile = Tables<'profiles'>
 export type RequestApproval = Tables<'request_approvals'>
+export type RequestItem = Tables<'request_items'>
+export type Request = Tables<'requests'>
 export type RequestType = Tables<'request_types'>
 export type Role = Tables<'roles'>
-export type SupplyRequestItem = Tables<'supply_request_items'>
-export type SupplyRequest = Tables<'supply_requests'>
 
 // =============================================================================
 // Table Insert Types
@@ -29,10 +29,10 @@ export type AuditLogInsert = TablesInsert<'audit_logs'>
 export type DepartmentInsert = TablesInsert<'departments'>
 export type ProfileInsert = TablesInsert<'profiles'>
 export type RequestApprovalInsert = TablesInsert<'request_approvals'>
+export type RequestItemInsert = TablesInsert<'request_items'>
+export type RequestInsert = TablesInsert<'requests'>
 export type RequestTypeInsert = TablesInsert<'request_types'>
 export type RoleInsert = TablesInsert<'roles'>
-export type SupplyRequestItemInsert = TablesInsert<'supply_request_items'>
-export type SupplyRequestInsert = TablesInsert<'supply_requests'>
 
 // =============================================================================
 // Table Update Types
@@ -44,10 +44,10 @@ export type AuditLogUpdate = TablesUpdate<'audit_logs'>
 export type DepartmentUpdate = TablesUpdate<'departments'>
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type RequestApprovalUpdate = TablesUpdate<'request_approvals'>
+export type RequestItemUpdate = TablesUpdate<'request_items'>
+export type RequestUpdate = TablesUpdate<'requests'>
 export type RequestTypeUpdate = TablesUpdate<'request_types'>
 export type RoleUpdate = TablesUpdate<'roles'>
-export type SupplyRequestItemUpdate = TablesUpdate<'supply_request_items'>
-export type SupplyRequestUpdate = TablesUpdate<'supply_requests'>
 
 // =============================================================================
 // Enum Types
@@ -62,25 +62,24 @@ export type SupplyRequestUpdate = TablesUpdate<'supply_requests'>
 export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 export type Priority = 'low' | 'medium' | 'high' | 'urgent'
-export type UserRole = 'user' | 'admin' | 'manager' | 'approver'
 
 // =============================================================================
 // Utility Types for Common Operations
 // =============================================================================
 
-export type CreateRequest = Omit<SupplyRequestInsert, 'id' | 'created_at' | 'updated_at' | 'request_number'>
-export type UpdateRequest = Pick<SupplyRequestUpdate, 'title' | 'description' | 'due_date' | 'priority' | 'status'>
+export type CreateRequest = Omit<RequestInsert, 'id' | 'created_at' | 'updated_at' | 'request_number'>
+export type UpdateRequest = Pick<RequestUpdate, 'title' | 'description' | 'due_date' | 'priority' | 'status'>
 
 // =============================================================================
 // Extended Types with Relationships
 // =============================================================================
 
-export type SupplyRequestWithDetails = SupplyRequest & {
+export type RequestWithDetails = Request & {
   requester?: Profile
   request_type?: RequestType
   workflow?: ApprovalWorkflow
   current_step?: ApprovalStep
-  items?: SupplyRequestItem[]
+  items?: RequestItem[]
   approvals?: RequestApproval[]
 }
 
@@ -96,7 +95,7 @@ export type ApprovalWorkflowWithSteps = ApprovalWorkflow & {
 }
 
 export type ApprovalStepWithDetails = ApprovalStep & {
-  approver_employee?: Profile
+  approver_employee_id?: Profile
   approver_role?: Role
   workflow?: ApprovalWorkflow
 }
@@ -104,7 +103,7 @@ export type ApprovalStepWithDetails = ApprovalStep & {
 export type RequestApprovalWithDetails = RequestApproval & {
   approver?: Profile
   step?: ApprovalStep
-  supply_request?: SupplyRequest
+  request?: Request
 }
 
 // =============================================================================

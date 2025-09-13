@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a School Request Management System built with Next.js 15 and Supabase. The system allows teachers to create supply requests, which then go through an approval workflow involving department heads and directors.
+This is a School Request Management System built with Next.js 15 and Supabase. The system allows teachers to create requests, which then go through an approval workflow involving department heads and directors.
 
 ## Architecture
 
@@ -61,110 +61,110 @@ The system uses a PostgreSQL database hosted on Supabase with the following key 
 
 ### Core Tables
 
-1. **supply_requests** - Main requests table
+1. **requests** - Main requests table
    - `id` (uuid) - Primary key
-   - `request_number` (varchar) - Unique request identifier
-   - `title` (varchar) - Request title
-   - `description` (text) - Request description
-   - `request_type_id` (uuid) - Foreign key to request_types
-   - `requester_id` (uuid) - Foreign key to profiles
-   - `workflow_id` (uuid) - Foreign key to approval_workflows
-   - `current_step_id` (uuid) - Foreign key to approval_steps
-   - `status` (varchar) - Request status (pending, in_progress, approved, rejected, cancelled)
-   - `priority` (varchar) - Request priority (low, medium, high, urgent)
-   - `payload` (jsonb) - Type-specific data
-   - `requested_date` (date) - Date request was made
-   - `due_date` (date) - Due date for request
-   - `completed_at` (timestamptz) - When request was completed
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
+   - `request_number` (string) - Unique request identifier
+   - `title` (string) - Request title
+   - `description` (string | null) - Request description
+   - `request_type_id` (string) - Foreign key to request_types
+   - `requester_id` (string) - Foreign key to profiles
+   - `workflow_id` (uuid | null) - Foreign key to approval_workflows
+   - `current_step_id` (uuid | null) - Foreign key to approval_steps
+   - `status` (string | null) - Request status
+   - `priority` (string | null) - Request priority
+   - `payload` (Json | null) - Type-specific data
+   - `requested_date` (string | null) - Date request was made
+   - `due_date` (string | null) - Due date for request
+   - `completed_at` (string | null) - When request was completed
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
 
-2. **supply_request_items** - Items within requests
+2. **request_items** - Items within requests
    - `id` (uuid) - Primary key
-   - `supply_request_id` (uuid) - Foreign key to supply_requests
-   - `item_name` (varchar) - Name of the item
-   - `description` (text) - Item description
-   - `quantity` (int) - Quantity requested
-   - `unit` (varchar) - Unit of measurement
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
+   - `request_id` (uuid) - Foreign key to requests
+   - `item_name` (string) - Name of the item
+   - `description` (string | null) - Item description
+   - `quantity` (number | null) - Quantity requested
+   - `unit` (string | null) - Unit of measurement
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
 
 3. **profiles** - User profiles
-   - `id` (uuid) - Primary key (linked to auth.users)
-   - `employee_code` (varchar) - Employee identification code
-   - `full_name` (varchar) - Full name of user
-   - `email` (varchar) - Email address
-   - `phone` (varchar) - Phone number
-   - `role_id` (uuid) - Foreign key to roles
-   - `is_active` (boolean) - Whether profile is active
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
+   - `id` (uuid) - Primary key
+   - `employee_code` (string | null) - Employee identification code
+   - `full_name` (string) - Full name of user
+   - `email` (string) - Email address
+   - `phone` (string | null) - Phone number
+   - `role_id` (uuid | null) - Foreign key to roles
+   - `is_active` (boolean | null) - Whether profile is active
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
 
 4. **approval_workflows** - Approval workflows
    - `id` (uuid) - Primary key
-   - `name` (varchar) - Workflow name
-   - `description` (text) - Workflow description
+   - `name` (string) - Workflow name
+   - `description` (string | null) - Workflow description
    - `request_type_id` (uuid) - Foreign key to request_types
-   - `role_id` (uuid) - Foreign key to roles (optional)
-   - `is_active` (boolean) - Whether workflow is active
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
+   - `role_id` (uuid | null) - Foreign key to roles (optional)
+   - `is_active` (boolean | null) - Whether workflow is active
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
 
 5. **approval_steps** - Steps in approval workflows
    - `id` (uuid) - Primary key
    - `workflow_id` (uuid) - Foreign key to approval_workflows
-   - `step_order` (int) - Order of step in workflow
-   - `step_name` (varchar) - Name of step
-   - `approver_role_id` (uuid) - Foreign key to roles (optional)
-   - `approver_employee_id` (uuid) - Foreign key to profiles (optional)
-   - `is_required` (boolean) - Whether step is required
-   - `created_at` (timestamptz) - Record creation timestamp
+   - `step_order` (number) - Order of step in workflow
+   - `step_name` (string) - Name of step
+   - `approver_role_id` (uuid | null) - Foreign key to roles (optional)
+   - `approver_employee_id` (uuid | null) - Foreign key to profiles (optional)
+   - `is_required` (boolean | null) - Whether step is required
+   - `created_at` (string | null) - Record creation timestamp
 
 6. **request_approvals** - Approval records
    - `id` (uuid) - Primary key
-   - `supply_request_id` (uuid) - Foreign key to supply_requests
+   - `request_id` (uuid) - Foreign key to requests
    - `step_id` (uuid) - Foreign key to approval_steps
    - `approver_id` (uuid) - Foreign key to profiles
-   - `status` (varchar) - Approval status (pending, approved, rejected)
-   - `comments` (text) - Approval comments
-   - `approved_at` (timestamptz) - When approval occurred
-   - `created_at` (timestamptz) - Record creation timestamp
+   - `status` (string) - Approval status
+   - `comments` (string | null) - Approval comments
+   - `approved_at` (string | null) - When approval occurred
+   - `created_at` (string | null) - Record creation timestamp
 
 7. **audit_logs** - Audit trail
    - `id` (uuid) - Primary key
-   - `table_name` (varchar) - Name of table affected
-   - `record_id` (uuid) - ID of affected record
-   - `action` (varchar) - Action performed (INSERT, UPDATE, DELETE)
-   - `old_values` (jsonb) - Previous values
-   - `new_values` (jsonb) - New values
-   - `changed_by` (uuid) - Foreign key to profiles
-   - `changed_at` (timestamptz) - When change occurred
+   - `table_name` (string) - Name of table affected
+   - `record_id` (string) - ID of affected record
+   - `action` (string) - Action performed (INSERT, UPDATE, DELETE)
+   - `old_values` (Json | null) - Previous values
+   - `new_values` (Json | null) - New values
+   - `changed_by` (uuid | null) - Foreign key to profiles
+   - `changed_at` (string | null) - When change occurred
 
 8. **departments** - School departments
    - `id` (uuid) - Primary key
-   - `name` (varchar) - Department name
-   - `code` (varchar) - Department code
-   - `description` (text) - Department description
-   - `is_active` (boolean) - Whether department is active
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
+   - `name` (string) - Department name
+   - `code` (string | null) - Department code
+   - `description` (string | null) - Department description
+   - `is_active` (boolean | null) - Whether department is active
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
 
 9. **roles** - User roles
    - `id` (uuid) - Primary key
-   - `name` (varchar) - Role name
-   - `department_id` (uuid) - Foreign key to departments (optional)
-   - `is_active` (boolean) - Whether role is active
-   - `created_at` (timestamptz) - Record creation timestamp
-   - `updated_at` (timestamptz) - Record update timestamp
-   - `parent_role` (uuid) - Foreign key to roles (optional)
+   - `name` (string) - Role name
+   - `department_id` (uuid | null) - Foreign key to departments (optional)
+   - `is_active` (boolean | null) - Whether role is active
+   - `created_at` (string | null) - Record creation timestamp
+   - `updated_at` (string | null) - Record update timestamp
+   - `parent_role` (uuid | null) - Foreign key to roles (optional)
 
 10. **request_types** - Types of requests
     - `id` (uuid) - Primary key
-    - `name` (varchar) - Type name (internal)
-    - `display_name` (varchar) - Display name
-    - `description` (text) - Type description
-    - `is_active` (boolean) - Whether type is active
-    - `created_at` (timestamptz) - Record creation timestamp
+    - `name` (string) - Type name (internal)
+    - `display_name` (string) - Display name
+    - `description` (string | null) - Type description
+    - `is_active` (boolean | null) - Whether type is active
+    - `created_at` (string | null) - Record creation timestamp
 
 ## API Layer and Data Flow
 
@@ -189,9 +189,8 @@ Server Components handle all write/change operations (create, approve, reject re
 │   │   │   ├── [id]/
 │   │   │   │   └── page.tsx      # Request detail page
 │   │   ├── new/
-│   │   │   │   └── page.tsx      # New request page
-│   │   │   ├── page.tsx          # Requests list pag
-e
+│   │   │   └── page.tsx      # New request page
+│   │   ├── page.tsx          # Requests list page
 │   │   └── layout.tsx            # Main layout after login
 │   └── page.tsx      # Home page
 ├── components/
@@ -225,7 +224,7 @@ e
 
 ### Form Handling (React Hook Form & Zod)
 
-Example for dynamic supply request form:
+Example for dynamic request form:
 
 ```tsx
 'use client';
@@ -344,7 +343,7 @@ export function RequestForm() {
 *   **Authorization (RBAC):**
     *   **Backend:** RLS is the primary defense, ensuring no data leakage.
     *   **Frontend:**
-        1.  After login, fetch user `profile` and `role`, storing in Zustand store.
+        1. After login, fetch user `profile` and `role`, storing in Zustand store.
         2.  Use this role to show/hide UI components. Example:
             ```tsx
             const { role } = useUserStore();
@@ -451,7 +450,7 @@ The project currently includes:
    - Admin interface
 
 2. Database schema with:
-   - Supply requests and items
+   - Requests and items
    - User profiles and roles
    - Departments
    - Approval workflows and steps
