@@ -1,12 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, ClipboardCheck, Clock } from "lucide-react"
+import { LogoutButton } from "@/components/auth/logout-button"
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  // If there's an error or no user, redirect to login
+  if (error || !user) {
+    redirect('/auth/login')
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="container flex h-16 items-center px-4">
+        <div className="container flex h-16 items-center justify-between px-4">
           <h1 className="text-lg font-semibold">Bảng Điều Khiển</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              Xin chào, {user.email}
+            </span>
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="container px-4 py-6">
