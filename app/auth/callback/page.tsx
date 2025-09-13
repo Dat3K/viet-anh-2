@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
-import { Icons } from '@/components/ui/icons'
+import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -20,7 +20,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
       <div className="text-center">
-        <Icons.spinner className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" />
         <h2 className="mt-4 text-xl font-semibold">Đang xác thực...</h2>
         <p className="mt-2 text-muted-foreground">
           Vui lòng đợi trong khi chúng tôi xác thực thông tin của bạn

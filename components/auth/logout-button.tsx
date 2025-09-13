@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-import { Icons } from '@/components/ui/icons'
+import { LoaderCircle } from '../animate-ui/icons/loader-circle'
+import { LogOutIcon } from 'lucide-react'
 
 interface LogoutButtonProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -47,12 +48,12 @@ export function LogoutButton({
     >
       {isSigningOut || isLoading ? (
         <>
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
           Đang đăng xuất...
         </>
       ) : (
         <>
-          <Icons.LogOut className="mr-2 h-4 w-4" />
+          <LogOutIcon className="mr-2 h-4 w-4" />
           Đăng xuất
         </>
       )}
