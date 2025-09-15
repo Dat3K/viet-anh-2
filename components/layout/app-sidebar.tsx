@@ -57,7 +57,6 @@ const requestSubItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
 
   const isRequestsActive = pathname.startsWith('/requests')
   const isDashboardActive = pathname === '/dashboard'
