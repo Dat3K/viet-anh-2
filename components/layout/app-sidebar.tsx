@@ -28,8 +28,8 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/hooks/use-auth"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import Image from "next/image"
 
 // Supply request sub-items
 const requestSubItems = [
@@ -65,9 +65,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="group-data-[collapsible=icon]:hidden">
         <div className="flex items-center gap-2 px-2 py-2">
-          <img 
+          <Image 
             src="https://wbfbugqjkzczthqjvnwd.supabase.co/storage/v1/object/public/image/logo.png" 
             alt="Trường Việt Anh Logo"
+            width={32}
+            height={32}
             className="h-8 w-8 object-contain shrink-0"
           />
           <div className="flex flex-col min-w-0">
