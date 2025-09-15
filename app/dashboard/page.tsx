@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, ClipboardCheck, Clock } from "lucide-react"
-import { LogoutButton } from "@/components/auth/logout-button"
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -23,7 +22,6 @@ export default async function DashboardPage() {
             <span className="text-sm text-muted-foreground">
               Xin chào, {user.email}
             </span>
-            <LogoutButton />
           </div>
         </div>
       </header>

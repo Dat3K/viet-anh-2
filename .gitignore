@@ -58,3 +58,8 @@ node_modules/
 
 # roomodes
 .roomodes
+.rooignore
+
+# cli
+.qwen
+.crush
