@@ -75,9 +75,8 @@ export async function middleware(request: NextRequest) {
   
   // If it's a protected route and user is not authenticated, redirect to login
   if (isProtectedRoute && !user) {
-    // Create a new URL for the login page
     const loginUrl = new URL('/auth/login', request.url);
-    // Add the original URL as a redirect parameter
+    // Add the original URL as a redirect parameter for post-login redirect
     loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
     
     return NextResponse.redirect(loginUrl);
@@ -85,7 +84,14 @@ export async function middleware(request: NextRequest) {
   
   // If user is authenticated and trying to access login page, redirect to dashboard
   if (user && request.nextUrl.pathname === '/auth/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Check if there's a redirect parameter from the original request
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard';
+    return NextResponse.redirect(new URL(redirectTo, request.url));
+  }
+  
+  // If user is authenticated but trying to access auth callback, allow it
+  if (user && request.nextUrl.pathname === '/auth/callback') {
+    return supabaseResponse;
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

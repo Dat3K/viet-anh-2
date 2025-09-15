@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, ClipboardCheck, Clock } from "lucide-react"
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { UserNav } from '@/components/auth/user-nav'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -22,6 +23,7 @@ export default async function DashboardPage() {
             <span className="text-sm text-muted-foreground">
               Xin chào, {user.email}
             </span>
+            <UserNav />
           </div>
         </div>
       </header>
