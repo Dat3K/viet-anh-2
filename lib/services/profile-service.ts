@@ -116,7 +116,7 @@ async function waitForProfile(userId: string, maxAttempts: number = 8): Promise<
       return profile
     } catch (error) {
       if (attempt === maxAttempts) {
-        console.error(`Profile not found for user ${userId} after ${maxAttempts} attempts`)
+        console.error(`Profile not found for user ${userId} after ${maxAttempts} attempts. Error: ${error}`)
         throw new Error(`Profile not found after ${maxAttempts} attempts. Database trigger may have failed or user may not exist.`)
       }
       
@@ -143,9 +143,7 @@ export async function getProfile(userId: string): Promise<ProfileWithDetails> {
     // Try to fetch existing profile first
     return await fetchProfile(userId)
   } catch (error) {
-    // Profile might not exist yet if user just registered
-    // Wait for database trigger to create it
-    console.log('Profile not found immediately, waiting for database trigger for user:', userId)
+    console.error('Profile not found immediately, waiting for database trigger for user:', userId, error)
     return await waitForProfile(userId)
   }
 }

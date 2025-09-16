@@ -29,11 +29,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({
   children,
-  attribute = "class",
-  defaultTheme = "system",
-  enableSystem = true,
   disableTransitionOnChange = false,
-  ...props
 }: ThemeProviderProps) {
   const { initializeTheme } = useThemeActions()
   
@@ -53,7 +49,7 @@ export function ThemeProvider({
       
       return () => {
         // Re-enable transitions after a frame
-        window.getComputedStyle(css).opacity
+        void window.getComputedStyle(css).opacity
         document.head.removeChild(css)
         
         // Call cleanup if it exists

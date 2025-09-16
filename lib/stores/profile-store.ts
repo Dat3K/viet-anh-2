@@ -107,9 +107,9 @@ type WithSelectors<S> = S extends { getState: () => infer T }
 
 const createSelectors = <S extends UseBoundStore<StoreApi<object>>>(_store: S) => {
   const store = _store as WithSelectors<typeof _store>
-  store.use = {}
+  store.use = {} as { [K in keyof ReturnType<S['getState']>]: () => ReturnType<S['getState']>[K] }
   for (const k of Object.keys(store.getState())) {
-    ;(store.use as any)[k] = () => store((s) => s[k as keyof typeof s])
+    (store.use as Record<string, () => unknown>)[k] = () => store((s) => s[k as keyof typeof s])
   }
   return store
 }
@@ -128,18 +128,20 @@ const loadingSelector = (state: ReturnType<typeof useProfileStore.getState>) => 
 const errorSelector = (state: ReturnType<typeof useProfileStore.getState>) => state.error
 
 // Stable actions object to prevent infinite loops
-const STABLE_ACTIONS = {
-  setProfile: null as any,
-  setLoading: null as any,
-  setError: null as any,
-  clearProfile: null as any,
-  updateProfile: null as any,
-  refreshProfile: null as any,
+type ProfileStoreActions = {
+  setProfile: (profile: ProfileWithDetails | null) => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  clearProfile: () => void
+  updateProfile: (updates: Partial<ProfileWithDetails>) => void
+  refreshProfile: () => Promise<void>
 }
+
+const STABLE_ACTIONS = {} as ProfileStoreActions
 
 // Initialize stable actions once
 let actionsInitialized = false
-const initializeActions = (state: ReturnType<typeof useProfileStore.getState>) => {
+const initializeActions = (state: ReturnType<typeof useProfileStore.getState>): ProfileStoreActions => {
   if (!actionsInitialized) {
     STABLE_ACTIONS.setProfile = state.setProfile
     STABLE_ACTIONS.setLoading = state.setLoading

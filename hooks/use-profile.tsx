@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from './use-auth'
 import { 
   useProfile, 

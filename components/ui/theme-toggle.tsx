@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import { useTheme, useResolvedTheme, useThemeActions, type Theme } from "@/lib/stores/theme-store"
+import { useTheme, useResolvedTheme, useThemeActions } from "@/lib/stores/theme-store"
 import { cn } from "@/lib/utils"
 
 interface ThemeToggleProps {

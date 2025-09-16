@@ -4,18 +4,6 @@ import { shallow } from 'zustand/shallow'
 
 export type Theme = 'light' | 'dark' | 'system'
 
-interface ThemeState {
-  theme: Theme
-  resolvedTheme: 'light' | 'dark'
-  systemTheme: 'light' | 'dark'
-}
-
-interface ThemeActions {
-  setTheme: (theme: Theme) => void
-  initializeTheme: () => void
-  updateSystemTheme: (systemTheme: 'light' | 'dark') => void
-}
-
 const STORAGE_KEY = 'viet-anh-theme'
 
 // Helper function to get system theme

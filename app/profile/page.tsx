@@ -82,7 +82,8 @@ export default function ProfilePage() {
       await refetch()
       toast.success("Làm mới hồ sơ thành công")
     } catch (error) {
-      toast.error("Không thể làm mới hồ sơ")
+      console.error('Profile refresh error:', error)
+      toast.error("Không thể làm mới hồ sơ ")
     }
   }
 
@@ -360,7 +361,7 @@ export default function ProfilePage() {
               </div>
               <Separator />
               <p className="text-sm text-muted-foreground">
-                Chế độ "Theo hệ thống" sẽ tự động thay đổi theo cài đặt của thiết bị.
+                Chế độ &ldquo;Theo hệ thống&rdquo; sẽ tự động thay đổi theo cài đặt của thiết bị.
               </p>
             </CardContent>
           </Card>

@@ -26,7 +26,6 @@ interface SupplyItemCardProps {
 }
 
 export function SupplyItemCard({
-  field,
   index,
   control,
   isOpen,

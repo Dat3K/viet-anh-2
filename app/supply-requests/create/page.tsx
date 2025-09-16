@@ -218,7 +218,7 @@ export default function CreateSupplyRequestPage() {
                 <FormField
                   control={form.control}
                   name="requestType"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel>Loại yêu cầu</FormLabel>
                       <FormControl>
