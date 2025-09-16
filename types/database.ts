@@ -1,6 +1,6 @@
-import type { 
-  Tables, 
-  TablesInsert, 
+import type {
+  Tables,
+  TablesInsert,
   TablesUpdate,
 } from './database.types.ts'
 
@@ -68,7 +68,7 @@ export type Priority = 'low' | 'medium' | 'high' | 'urgent'
 // =============================================================================
 
 export type CreateRequest = Omit<RequestInsert, 'id' | 'created_at' | 'updated_at' | 'request_number'>
-export type UpdateRequest = Pick<RequestUpdate, 'title' | 'description' | 'due_date' | 'priority' | 'status'>
+export type UpdateRequest = Pick<RequestUpdate, 'title' | 'due_date' | 'priority' | 'status'>
 
 // =============================================================================
 // Extended Types with Relationships

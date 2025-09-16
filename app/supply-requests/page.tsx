@@ -4,13 +4,13 @@ import { Plus, History, CheckCircle, Clock, FileText, ArrowRight } from "lucide-
 import { AppLayout } from '@/components/layout/app-layout'
 import Link from 'next/link'
 
-export default function RequestsPage() {
+export default function SupplyRequestsPage() {
   const requestSections = [
     {
       title: "Tạo yêu cầu mới",
       description: "Tạo yêu cầu vật tư, thiết bị giảng dạy mới",
       icon: Plus,
-      href: "/requests/create",
+      href: "/supply-requests/create",
       color: "bg-blue-500",
       stats: "Bắt đầu ngay"
     },
@@ -18,7 +18,7 @@ export default function RequestsPage() {
       title: "Lịch sử yêu cầu",
       description: "Xem tất cả các yêu cầu đã tạo trước đây",
       icon: History,
-      href: "/requests/history",
+      href: "/supply-requests/history",
       color: "bg-green-500",
       stats: "45 yêu cầu"
     },
@@ -26,7 +26,7 @@ export default function RequestsPage() {
       title: "Phê duyệt yêu cầu",
       description: "Duyệt các yêu cầu từ giáo viên khác",
       icon: CheckCircle,
-      href: "/requests/approve",
+      href: "/supply-requests/approve",
       color: "bg-purple-500",
       stats: "12 chờ duyệt"
     },
@@ -34,7 +34,7 @@ export default function RequestsPage() {
       title: "Yêu cầu chờ xử lý",
       description: "Theo dõi các yêu cầu đang được xử lý",
       icon: Clock,
-      href: "/requests/pending",
+      href: "/supply-requests/pending",
       color: "bg-orange-500",
       stats: "8 đang xử lý"
     }

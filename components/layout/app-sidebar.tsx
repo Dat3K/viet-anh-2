@@ -36,22 +36,22 @@ import Image from "next/image"
 const requestSubItems = [
   {
     title: "Tạo yêu cầu",
-    url: "/requests/create",
+    url: "/supply-requests/create",
     icon: Plus,
   },
   {
     title: "Lịch sử yêu cầu",
-    url: "/requests/history",
+    url: "/supply-requests/history",
     icon: History,
   },
   {
     title: "Phê duyệt yêu cầu",
-    url: "/requests/approve",
+    url: "/supply-requests/approve",
     icon: CheckCircle,
   },
   {
     title: "Yêu cầu chờ xử lý",
-    url: "/requests/pending",
+    url: "/supply-requests/pending",
     icon: Clock,
   },
 ]
@@ -59,7 +59,7 @@ const requestSubItems = [
 export function AppSidebar() {
   const pathname = usePathname()
 
-  const isRequestsActive = pathname.startsWith('/requests')
+  const isRequestsActive = pathname.startsWith('/supply-requests')
   const isDashboardActive = pathname === '/dashboard'
   const isProfileActive = pathname === '/profile'
 
