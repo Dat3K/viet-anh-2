@@ -53,10 +53,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           case 'SIGNED_IN':
             // Invalidate all queries to refetch with new auth context
             queryClient.invalidateQueries()
+            // Profile will be automatically fetched by useProfileSync hook
             break
           case 'SIGNED_OUT':
             // Clear all cached data on sign out
             queryClient.clear()
+            // Profile will be automatically cleared by useProfileSync hook
             break
           case 'TOKEN_REFRESHED':
             // Token was refreshed, update cache

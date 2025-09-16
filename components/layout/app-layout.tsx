@@ -3,6 +3,7 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "./app-sidebar"
 import { Header } from "./header"
+import { useUserProfile } from '@/hooks/use-profile'
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 interface AppLayoutProps {
@@ -10,6 +11,9 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  // Initialize profile sync for the entire app
+  useUserProfile()
+  
   return (
     <TooltipProvider>
       <SidebarProvider>

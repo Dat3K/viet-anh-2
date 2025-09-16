@@ -7,7 +7,8 @@ import {
   CheckCircle,
   Clock,
   ChevronRight,
-  Home
+  Home,
+  User
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -60,6 +61,7 @@ export function AppSidebar() {
 
   const isRequestsActive = pathname.startsWith('/requests')
   const isDashboardActive = pathname === '/dashboard'
+  const isProfileActive = pathname === '/profile'
 
   return (
     <Sidebar collapsible="icon">
@@ -94,6 +96,20 @@ export function AppSidebar() {
                   <Link href="/dashboard">
                     <Home />
                     <span>Trang chủ</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Profile */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={isProfileActive}
+                  tooltip="Hồ sơ cá nhân"
+                >
+                  <Link href="/profile">
+                    <User />
+                    <span>Hồ sơ cá nhân</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
