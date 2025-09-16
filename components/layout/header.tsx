@@ -4,6 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { UserNav } from "@/components/auth/user-nav"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { usePathname } from "next/navigation"
 
 // Map paths to Vietnamese breadcrumb names
@@ -83,6 +84,9 @@ export function Header() {
       
       {/* Spacer */}
       <div className="ml-auto" />
+      
+      {/* Theme Toggle */}
+      <ThemeToggle />
       
       {/* User Navigation */}
       <UserNav />

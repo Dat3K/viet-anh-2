@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Loader2, Save, RefreshCw, User, Mail, Phone, Building, UserCheck } from 'lucide-react'
+import { ThemeSwitch } from '@/components/ui/theme-toggle'
+import { Loader2, Save, RefreshCw, User, Mail, Phone, Building, UserCheck, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
@@ -306,39 +307,64 @@ export default function ProfilePage() {
         </div>
 
         {/* Additional Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Thông tin tổ chức
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Phòng ban</p>
-                <p className="font-medium">{profile.department?.name || 'Chưa phân công'}</p>
-                {profile.department?.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {profile.department.description}
-                  </p>
-                )}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Thông tin tổ chức
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Phòng ban</p>
+                  <p className="font-medium">{profile.department?.name || 'Chưa phân công'}</p>
+                  {profile.department?.description && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {profile.department.description}
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">Chức vụ</p>
+                  <p className="font-medium">{profile.role?.name || 'Chưa phân quyền'}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">Trạng thái</p>
+                  <Badge variant={profile.is_active ? "default" : "secondary"}>
+                    {profile.is_active ? "Đang hoạt động" : "Tạm ngưng"}
+                  </Badge>
+                </div>
               </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Chức vụ</p>
-                <p className="font-medium">{profile.role?.name || 'Chưa phân quyền'}</p>
+            </CardContent>
+          </Card>
+
+          {/* Theme Settings Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Cài đặt giao diện
+              </CardTitle>
+              <CardDescription>
+                Tùy chỉnh giao diện theo sở thích của bạn
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Chế độ hiển thị</Label>
+                <ThemeSwitch />
               </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Trạng thái</p>
-                <Badge variant={profile.is_active ? "default" : "secondary"}>
-                  {profile.is_active ? "Đang hoạt động" : "Tạm ngưng"}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              <Separator />
+              <p className="text-sm text-muted-foreground">
+                Chế độ "Theo hệ thống" sẽ tự động thay đổi theo cài đặt của thiết bị.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppLayout>
   )
