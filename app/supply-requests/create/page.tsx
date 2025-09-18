@@ -46,7 +46,6 @@ import { useCreateSupplyRequest } from '@/hooks/use-supply-requests'
 import { toast } from 'sonner'
 
 export default function CreateSupplyRequestPage() {
-  const [submitMode, setSubmitMode] = useState<'draft' | 'submit'>('draft')
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   const [showOptimisticFeedback, setShowOptimisticFeedback] = useState(false)
   const addButtonRef = useRef<HTMLDivElement>(null)
@@ -114,27 +113,19 @@ export default function CreateSupplyRequestPage() {
       }
 
       console.log('Supply request data:', submitData)
-      console.log('Submit mode:', submitMode)
 
       // Create the supply request with optimistic updates
       const result = await createSupplyRequestMutation.mutateAsync(submitData)
 
-      // Success feedback with enhanced information
-      if (submitMode === 'draft') {
-        toast.success('Đã lưu nháp thành công!', {
-          description: `Mã yêu cầu: ${result.request_number} • ${submitData.items.length} vật tư`,
-          duration: 4000
-        })
-      } else {
-        toast.success('Đã gửi yêu cầu thành công!', {
-          description: `Mã yêu cầu: ${result.request_number} • ${submitData.items.length} vật tư`,
-          duration: 6000,
-          action: {
-            label: 'Xem danh sách',
-            onClick: () => router.push('/supply-requests')
-          }
-        })
-      }
+      // Success feedback
+      toast.success('Đã gửi yêu cầu thành công!', {
+        description: `Mã yêu cầu: ${result.request_number} • ${submitData.items.length} vật tư`,
+        duration: 6000,
+        action: {
+          label: 'Xem danh sách',
+          onClick: () => router.push('/supply-requests')
+        }
+      })
 
       // Reset form after successful submission
       form.reset({
@@ -155,11 +146,9 @@ export default function CreateSupplyRequestPage() {
       setOpenItems({})
 
       // Navigate to requests list after successful submission
-      if (submitMode === 'submit') {
-        setTimeout(() => {
-          router.push('/supply-requests')
-        }, 2000)
-      }
+      setTimeout(() => {
+        router.push('/supply-requests')
+      }, 2000)
 
     } catch (error) {
       console.error('Error submitting supply request:', error)
@@ -197,8 +186,7 @@ export default function CreateSupplyRequestPage() {
     }
   }
 
-  const handleSubmit = (mode: 'draft' | 'submit') => {
-    setSubmitMode(mode)
+  const handleSubmit = () => {
     form.handleSubmit(onSubmit)()
   }
 
@@ -323,7 +311,7 @@ export default function CreateSupplyRequestPage() {
             <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
               <span className="text-sm text-blue-700 dark:text-blue-300">
-                {submitMode === 'draft' ? 'Đang lưu nháp...' : 'Đang tạo yêu cầu vật tư...'}
+                Đang tạo yêu cầu vật tư...
               </span>
             </div>
           )}
@@ -333,7 +321,7 @@ export default function CreateSupplyRequestPage() {
             <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <span className="text-sm text-green-700 dark:text-green-300">
-                {submitMode === 'draft' ? 'Đã lưu nháp thành công!' : 'Yêu cầu đã được tạo thành công!'}
+                Yêu cầu đã được tạo thành công!
               </span>
             </div>
           )}
@@ -509,9 +497,7 @@ export default function CreateSupplyRequestPage() {
 
             <ActionButtons
               isSubmitting={createSupplyRequestMutation.isPending || showOptimisticFeedback}
-              submitMode={submitMode}
-              onSaveDraft={() => handleSubmit('draft')}
-              onSubmit={() => handleSubmit('submit')}
+              onSubmit={handleSubmit}
               disabled={profileLoading || !profile}
             />
 
