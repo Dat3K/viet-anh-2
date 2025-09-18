@@ -35,6 +35,11 @@ import Image from "next/image"
 // Supply request sub-items
 const requestSubItems = [
   {
+    title: "Danh sách yêu cầu",
+    url: "/supply-requests",
+    icon: FileText,
+  },
+  {
     title: "Tạo yêu cầu",
     url: "/supply-requests/create",
     icon: Plus,
@@ -48,11 +53,6 @@ const requestSubItems = [
     title: "Phê duyệt yêu cầu",
     url: "/supply-requests/approve",
     icon: CheckCircle,
-  },
-  {
-    title: "Yêu cầu chờ xử lý",
-    url: "/supply-requests/pending",
-    icon: Clock,
   },
 ]
 

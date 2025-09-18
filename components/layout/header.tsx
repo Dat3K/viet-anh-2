@@ -11,6 +11,10 @@ import { usePathname } from "next/navigation"
 const pathMap: Record<string, string> = {
   '/dashboard': 'Trang chủ',
   '/requests': 'Yêu cầu vật tư',
+  '/supply-requests': 'Yêu cầu vật tư',
+  '/supply-requests/create': 'Tạo yêu cầu',
+  '/supply-requests/history': 'Lịch sử yêu cầu',
+  '/supply-requests/approve': 'Phê duyệt yêu cầu',
   '/students': 'Quản lý học sinh',
   '/schedule': 'Thời khóa biểu',
   '/materials': 'Tài liệu giảng dạy',

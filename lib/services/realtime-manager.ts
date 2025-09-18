@@ -408,16 +408,25 @@ class OptimizedRealtimeManager {
           }
         })
         
-        // Unsubscribe and remove channel
-        this.supabase.removeChannel(channelStatus.channel)
+        // Safely unsubscribe and remove channel
+        try {
+          this.supabase.removeChannel(channelStatus.channel)
+        } catch (removeError) {
+          // Channel might already be removed by Supabase, ignore this error
+          console.debug(`Channel ${channelName} already removed or not found in Supabase client`)
+        }
+        
         this.channelStatuses.delete(channelName)
         
         console.log(`🔌 Optimized channel unsubscribed: ${channelName}`)
       } catch (error) {
         console.error(`❌ Error unsubscribing from channel ${channelName}:`, error)
+        // Still clean up our internal state even if Supabase cleanup failed  
+        this.channelStatuses.delete(channelName)
       }
     } else {
-      console.warn(`⚠️ Channel not found for unsubscription: ${channelName}`)
+      // Silently handle missing channels - this is normal during cleanup
+      console.debug(`Channel not found for unsubscription (normal during cleanup): ${channelName}`)
     }
   }
 
@@ -440,6 +449,37 @@ class OptimizedRealtimeManager {
     this.connectionStartTime = new Date()
 
     console.log(`🧹 Optimized cleanup: unsubscribed from all ${channelNames.length} channels`)
+  }
+
+  /**
+   * Force cleanup all channels - useful for user logout or app cleanup
+   */
+  forceCleanupAll(): void {
+    try {
+      // Remove all channels from Supabase client first
+      const channels = Array.from(this.channelStatuses.values())
+      channels.forEach(({ channel }) => {
+        try {
+          this.supabase.removeChannel(channel)
+        } catch (error) {
+          // Ignore errors during force cleanup
+          console.debug('Force cleanup channel error (ignored):', error)
+        }
+      })
+
+      // Clear all internal state
+      this.channelStatuses.clear()
+      this.debouncedCallbacks.forEach(callback => callback.cancel())
+      this.debouncedCallbacks.clear()
+      
+      // Reset connection stats
+      this.connectionErrors = 0
+      this.connectionStartTime = new Date()
+
+      console.log(`🧹 Force cleanup completed: cleared all realtime subscriptions`)
+    } catch (error) {
+      console.error('Error during force cleanup:', error)
+    }
   }
 
   /**

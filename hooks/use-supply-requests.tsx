@@ -832,8 +832,16 @@ export function useSupplyRequestRealtime(options: {
 
     // Cleanup subscriptions on unmount
     return () => {
-      supplyRequestService.unsubscribeFromSupplyRequests(user.id)
-      supplyRequestService.unsubscribeFromApprovalUpdates(user.id)
+      // Only attempt unsubscribe if we have a valid user ID
+      if (user?.id) {
+        try {
+          supplyRequestService.unsubscribeFromSupplyRequests(user.id)
+          supplyRequestService.unsubscribeFromApprovalUpdates(user.id)
+        } catch (error) {
+          // Silently handle unsubscribe errors during cleanup
+          console.debug('Cleanup unsubscribe error (normal during unmount):', error)
+        }
+      }
       
       if (healthCheckInterval) {
         clearInterval(healthCheckInterval)
@@ -925,6 +933,51 @@ export function useSupplyRequestFilters() {
     resetFilters,
     getFilteredRequests,
   }
+}
+
+/**
+ * Hook to fetch supply request history with advanced filtering and pagination
+ * Follows established patterns with proper type safety and caching
+ */
+export function useSupplyRequestHistory(options: {
+  page?: number
+  pageSize?: number
+  status?: StatusFilter
+  priority?: PriorityFilter
+  searchQuery?: string
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: 'created_at' | 'updated_at' | 'status' | 'priority'
+  sortOrder?: 'asc' | 'desc'
+} = {}) {
+  const { user } = useAuth()
+  
+  const queryKey = useMemo(() => [
+    ...supplyRequestKeys.lists(),
+    'history',
+    user?.id,
+    options
+  ], [user?.id, options])
+
+  return useQuery({
+    queryKey,
+    queryFn: async () => {
+      const result = await supplyRequestService.getSupplyRequestHistory(options)
+      return result
+    },
+    enabled: !!user?.id,
+    staleTime: 3 * 60 * 1000, // 3 minutes - slightly less than regular requests for history freshness
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch on mount to avoid unnecessary requests
+    placeholderData: keepPreviousData, // Smooth pagination transitions
+    retry: (failureCount, error: Error) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('not authenticated')) return false
+      return failureCount < 2
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  })
 }
 
 /**

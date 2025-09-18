@@ -375,6 +375,125 @@ class SupplyRequestService extends BaseService {
   }
 
   /**
+   * Get supply request history with advanced filtering and pagination
+   * Follows established patterns with proper type safety
+   */
+  async getSupplyRequestHistory(options: {
+    page?: number
+    pageSize?: number
+    status?: 'all' | 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled'
+    priority?: 'all' | 'low' | 'medium' | 'high' | 'urgent'
+    searchQuery?: string
+    dateFrom?: string
+    dateTo?: string
+    sortBy?: 'created_at' | 'updated_at' | 'status' | 'priority'
+    sortOrder?: 'asc' | 'desc'
+  } = {}): Promise<{
+    data: SupplyRequestWithItems[]
+    totalCount: number
+    totalPages: number
+    currentPage: number
+  }> {
+    try {
+      const {
+        page = 1,
+        pageSize = 20,
+        status = 'all',
+        priority = 'all',
+        searchQuery = '',
+        dateFrom,
+        dateTo,
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+      } = options
+
+      const user = await this.getCurrentUser()
+      
+      // Build the base query with joins
+      let query = this.supabase
+        .from('requests')
+        .select(`
+          *,
+          request_items(*),
+          request_types!inner(name, display_name),
+          profiles!inner(full_name, email),
+          request_approvals(
+            id,
+            status,
+            comments,
+            approved_at,
+            profiles!inner(full_name)
+          )
+        `, { count: 'exact' })
+        .eq('requester_id', user.id)
+        .eq('request_types.name', 'supply_request')
+
+      // Apply status filter
+      if (status !== 'all') {
+        query = query.eq('status', status)
+      }
+
+      // Apply priority filter
+      if (priority !== 'all') {
+        query = query.eq('priority', priority)
+      }
+
+      // Apply search filter
+      if (searchQuery.trim()) {
+        query = query.or(`title.ilike.%${searchQuery}%,request_number.ilike.%${searchQuery}%`)
+      }
+
+      // Apply date filters
+      if (dateFrom) {
+        query = query.gte('created_at', dateFrom)
+      }
+      if (dateTo) {
+        query = query.lte('created_at', dateTo)
+      }
+
+      // Apply sorting
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' })
+
+      // Apply pagination
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+      query = query.range(from, to)
+
+      const { data, error, count } = await query
+
+      if (error) throw error
+
+      // Map database fields to service types
+      const mappedData: SupplyRequestWithItems[] = (data || []).map(request => ({
+        ...request,
+        items: (request.request_items || []).map((item: RequestItem) => ({
+          ...item,
+          name: item.item_name, // Map database field to service interface
+          notes: item.description // Map database field to service interface
+        }))
+      }))
+
+      const totalCount = count || 0
+      const totalPages = Math.ceil(totalCount / pageSize)
+
+      return {
+        data: mappedData,
+        totalCount,
+        totalPages,
+        currentPage: page
+      }
+    } catch (error) {
+      this.handleError(error, 'SupplyRequestService.getSupplyRequestHistory')
+      return {
+        data: [],
+        totalCount: 0,
+        totalPages: 0,
+        currentPage: 1
+      }
+    }
+  }
+
+  /**
    * Get request types for dropdown
    */
   async getRequestTypes() {
