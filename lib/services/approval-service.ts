@@ -17,39 +17,74 @@ export class ApprovalService extends BaseService {
   /**
    * Get requests pending approval for current user
    */
-  async getPendingApprovalRequests(): Promise<PendingApprovalRequest[]> {
+  async getPendingApprovalRequests(options: {
+    requestTypeName?: string | string[]
+    requestTypeId?: string | string[]
+    includeItems?: boolean
+  } = {}): Promise<PendingApprovalRequest[]> {
     try {
       const user = await this.getCurrentUser()
       const userRoleId = await this.getCurrentUserRoleId()
 
-      const { data, error } = await this.supabase
+      // Build dynamic select clause using non-aliased names to keep filters stable
+      let select = `
+        *,
+        request_types!inner(*),
+        profiles!inner(*),
+        approval_steps!inner(*)
+      `
+
+      if (options.includeItems) {
+        select += `,
+        request_items(*)
+        `
+      }
+
+      let query = this.supabase
         .from('requests')
-        .select(`
-          *,
-          request_types!inner(*),
-          profiles!inner(*),
-          approval_steps!inner(*)
-        `)
-        .eq('status', 'in_progress')
+        .select(select)
+        // Show requests awaiting first approval (pending) and those mid-workflow (in_progress)
+        .in('status', ['pending', 'in_progress'])
         .not('current_step_id', 'is', null)
-        .or(`approval_steps.approver_employee_id.eq.${user.id},approval_steps.approver_role_id.eq.${userRoleId}`)
+        // Approver can be explicitly assigned or via role.
+        // Guard against null/undefined role to avoid generating invalid eq.null
+        // and scope OR to the joined approval_steps table to avoid PostgREST parse issues.
+        .or(
+          `approver_employee_id.eq.${user.id}` + (userRoleId ? `,approver_role_id.eq.${userRoleId}` : ''),
+          { referencedTable: 'approval_steps' }
+        )
         .order('created_at', { ascending: false })
 
+      // Apply optional filters by request type
+      if (options.requestTypeId) {
+        const ids = Array.isArray(options.requestTypeId) ? options.requestTypeId : [options.requestTypeId]
+        query = query.in('request_type_id', ids)
+      } else if (options.requestTypeName) {
+        const names = Array.isArray(options.requestTypeName) ? options.requestTypeName : [options.requestTypeName]
+        // filter by joined table column
+        query = query.in('request_types.name', names)
+      }
+
+      const { data, error } = await query
       if (error) throw error
 
-      // Type-safe mapping using proper Supabase response types
-      return data?.map((request: Record<string, unknown>): PendingApprovalRequest => {
-        const requestTypes = request.request_types as Array<RequestType>
-        const profiles = request.profiles as Array<Profile>
-        const approvalSteps = request.approval_steps as Array<ApprovalStep>
+      const rows = (data ?? []) as unknown as Record<string, unknown>[]
 
-        return {
-          ...(request as Request),
-          request_type: requestTypes[0],
-          requester: profiles[0],
-          current_step: approvalSteps[0]
-        }
-      }) || []
+      // Type-safe mapping using proper Supabase response types
+      return (
+        rows.map((request: Record<string, unknown>): PendingApprovalRequest => {
+          const requestTypes = request.request_types as Array<RequestType>
+          const profiles = request.profiles as Array<Profile>
+          const approvalSteps = request.approval_steps as Array<ApprovalStep>
+
+          return {
+            ...(request as Request),
+            request_type: Array.isArray(requestTypes) ? requestTypes[0] : (requestTypes as unknown as RequestType),
+            requester: Array.isArray(profiles) ? profiles[0] : (profiles as unknown as Profile),
+            current_step: Array.isArray(approvalSteps) ? approvalSteps[0] : (approvalSteps as unknown as ApprovalStep)
+          }
+        }) || []
+      )
     } catch (error) {
       this.handleError(error, 'ApprovalService.getPendingApprovalRequests')
     }
@@ -106,8 +141,7 @@ export class ApprovalService extends BaseService {
           status: action.action === 'approve' ? 'approved' : 'rejected',
           comments: action.comments || null,
           approved_at: this.getCurrentTimestamp(),
-          created_at: this.getCurrentTimestamp(),
-          updated_at: this.getCurrentTimestamp()
+          created_at: this.getCurrentTimestamp()
         })
 
       if (approvalError) throw approvalError
@@ -246,17 +280,39 @@ export class ApprovalService extends BaseService {
   /**
    * Get pending approvals count for current user
    */
-  async getPendingApprovalsCount(userId?: string): Promise<number> {
+  async getPendingApprovalsCount(
+    userId?: string,
+    options: {
+      requestTypeName?: string | string[]
+      requestTypeId?: string | string[]
+    } = {}
+  ): Promise<number> {
     try {
       const currentUserId = userId || (await this.getCurrentUser()).id
       const userRoleId = await this.getCurrentUserRoleId()
 
-      const { count, error } = await this.supabase
+      // Include joins in select to enable filtering on embedded relations while counting
+      let query = this.supabase
         .from('requests')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'in_progress')
+        .select('id, approval_steps!inner(id), request_types!inner(id)', { count: 'exact', head: true })
+        // Count both 'pending' (first step) and 'in_progress' (subsequent steps)
+        .in('status', ['pending', 'in_progress'])
         .not('current_step_id', 'is', null)
-        .or(`approval_steps.approver_employee_id.eq.${currentUserId},approval_steps.approver_role_id.eq.${userRoleId}`)
+        // Apply OR on the joined approval_steps table; skip role condition if not available
+        .or(
+          `approver_employee_id.eq.${currentUserId}` + (userRoleId ? `,approver_role_id.eq.${userRoleId}` : ''),
+          { referencedTable: 'approval_steps' }
+        )
+
+      if (options.requestTypeId) {
+        const ids = Array.isArray(options.requestTypeId) ? options.requestTypeId : [options.requestTypeId]
+        query = query.in('request_type_id', ids)
+      } else if (options.requestTypeName) {
+        const names = Array.isArray(options.requestTypeName) ? options.requestTypeName : [options.requestTypeName]
+        query = query.in('request_types.name', names)
+      }
+
+      const { count, error } = await query
 
       if (error) throw error
       return count || 0

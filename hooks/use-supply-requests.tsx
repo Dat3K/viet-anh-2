@@ -22,12 +22,112 @@ export const supplyRequestKeys = {
   pendingApprovals: (userId: string) => [...supplyRequestKeys.approvals(), 'pending', userId] as const,
 }
 
+/**
+ * Hook to update a single supply request item with optimistic updates
+ */
+export function useUpdateSupplyRequestItem() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationKey: supplyRequestMutationKeys.updateItem,
+    mutationFn: async ({ requestId, itemId, updates }: {
+      requestId: string
+      itemId: string
+      updates: Partial<{ name: string; quantity: number; unit: string; notes?: string }>
+    }) => {
+      const result = await supplyRequestService.updateRequestItem(requestId, itemId, updates)
+      if (!result) throw new Error('Failed to update request item')
+      return result
+    },
+
+    onMutate: async ({ requestId, itemId, updates }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const pendingApprovalsKey = supplyRequestKeys.pendingApprovals(user.id)
+      const detailQueryKey = supplyRequestKeys.detail(requestId)
+
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: pendingApprovalsKey }),
+        queryClient.cancelQueries({ queryKey: detailQueryKey })
+      ])
+
+      const prevPending = queryClient.getQueryData<SupplyRequestWithItems[]>(pendingApprovalsKey)
+      const prevDetail = queryClient.getQueryData<SupplyRequestWithItems>(detailQueryKey)
+
+      // Optimistically update in pending approvals list
+      if (prevPending) {
+        queryClient.setQueryData<SupplyRequestWithItems[]>(
+          pendingApprovalsKey,
+          prevPending.map(req => {
+            if (req.id !== requestId) return req
+            return {
+              ...req,
+              items: (req.items || []).map(item =>
+                item.id === itemId
+                  ? { ...item, ...updates }
+                  : item
+              )
+            }
+          })
+        )
+      }
+
+      // Optimistically update detail view
+      if (prevDetail) {
+        queryClient.setQueryData<SupplyRequestWithItems>(
+          detailQueryKey,
+          {
+            ...prevDetail,
+            items: (prevDetail.items || []).map(item =>
+              item.id === itemId ? { ...item, ...updates } : item
+            )
+          }
+        )
+      }
+
+      return { prevPending, prevDetail, pendingApprovalsKey, detailQueryKey }
+    },
+
+    onSuccess: (result) => {
+      toast.success('Đã lưu thay đổi vật tư', {
+        description: `${result.name} • SL: ${result.quantity} ${result.unit}`,
+        duration: 4000,
+      })
+    },
+
+    onError: (error, variables, context) => {
+      if (context?.prevPending && context?.pendingApprovalsKey) {
+        queryClient.setQueryData(context.pendingApprovalsKey, context.prevPending)
+      }
+      if (context?.prevDetail && context?.detailQueryKey) {
+        queryClient.setQueryData(context.detailQueryKey, context.prevDetail)
+      }
+
+      toast.error('Không thể cập nhật vật tư', {
+        description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+        duration: 6000,
+      })
+    },
+
+    onSettled: (data, error, variables, context) => {
+      if (context?.pendingApprovalsKey) {
+        queryClient.invalidateQueries({ queryKey: context.pendingApprovalsKey })
+      }
+      if (context?.detailQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.detailQueryKey })
+      }
+    },
+  })
+}
+
 // Mutation keys for better organization
 export const supplyRequestMutationKeys = {
   create: ['supply-requests', 'create'] as const,
   update: ['supply-requests', 'update'] as const,
   delete: ['supply-requests', 'delete'] as const,
   approve: ['supply-requests', 'approve'] as const,
+  updateItem: ['supply-requests', 'update-item'] as const,
 }
 
 // Type definitions for filters

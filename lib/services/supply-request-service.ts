@@ -3,7 +3,8 @@ import type {
   SupplyRequestWithItems, 
   RequestInsert,
   RequestItem,
-  SupplyRequest
+  SupplyRequest,
+  SupplyRequestItem
 } from '@/types/database'
 import { BaseService } from './base-service'
 import { realtimeManager } from './realtime-manager'
@@ -312,6 +313,57 @@ class SupplyRequestService extends BaseService {
     }
   }
 
+
+  /**
+   * Update a single request item (used for inline editing in approval UI)
+   * Note: Maps service fields to DB columns (name -> item_name, notes -> description)
+   */
+  async updateRequestItem(
+    requestId: string,
+    itemId: string,
+    updates: Partial<Pick<SupplyRequestItem, 'name' | 'quantity' | 'unit' | 'notes'>>
+  ): Promise<SupplyRequestItem> {
+    try {
+      // Map service fields to DB fields
+      const dbUpdates: Partial<Pick<RequestItem, 'item_name' | 'quantity' | 'unit' | 'description' | 'updated_at'>> = {
+        updated_at: this.getCurrentTimestamp(),
+      }
+
+      if (typeof updates.name !== 'undefined') {
+        dbUpdates.item_name = updates.name
+      }
+      if (typeof updates.quantity !== 'undefined') {
+        dbUpdates.quantity = updates.quantity
+      }
+      if (typeof updates.unit !== 'undefined') {
+        dbUpdates.unit = updates.unit
+      }
+      if (typeof updates.notes !== 'undefined') {
+        dbUpdates.description = updates.notes ?? null
+      }
+
+      const { data, error } = await this.supabase
+        .from('request_items')
+        .update(dbUpdates)
+        .eq('id', itemId)
+        .eq('request_id', requestId)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      // Map DB fields back to service type
+      const mapped: SupplyRequestItem = {
+        ...data,
+        name: (data as unknown as RequestItem).item_name as unknown as string,
+        notes: (data as unknown as RequestItem).description as unknown as string | undefined,
+      }
+
+      return mapped
+    } catch (error) {
+      this.handleError(error, 'SupplyRequestService.updateRequestItem')
+    }
+  }
 
   /**
    * Get request types for dropdown
