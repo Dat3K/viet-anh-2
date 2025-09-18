@@ -8,6 +8,7 @@ interface ActionButtonsProps {
   submitMode: 'draft' | 'submit'
   onSaveDraft: () => void
   onSubmit: () => void
+  disabled?: boolean
   className?: string
   draftButtonText?: string
   submitButtonText?: string
@@ -20,6 +21,7 @@ export function ActionButtons({
   submitMode,
   onSaveDraft,
   onSubmit,
+  disabled = false,
   className = "",
   draftButtonText = "Lưu nháp",
   submitButtonText = "Gửi yêu cầu",
@@ -32,7 +34,7 @@ export function ActionButtons({
         type="button"
         variant="outline"
         onClick={onSaveDraft}
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabled}
         className="sm:order-1"
       >
         <Save className="h-4 w-4 mr-2" />
@@ -42,7 +44,7 @@ export function ActionButtons({
       <Button
         type="button"
         onClick={onSubmit}
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabled}
         className="sm:order-2"
       >
         <Send className="h-4 w-4 mr-2" />

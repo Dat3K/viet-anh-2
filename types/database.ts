@@ -107,5 +107,66 @@ export type RequestApprovalWithDetails = RequestApproval & {
 }
 
 // =============================================================================
+// Extended Service Types
+// =============================================================================
+
+// Workflow Service Types
+export interface WorkflowWithFullDetails extends ApprovalWorkflowWithSteps {
+  request_type?: RequestType
+  role?: Role
+}
+
+// Role Service Types
+export interface RoleWithDepartment extends Role {
+  department?: Department
+  parent_role_info?: Role
+  child_roles?: Role[]
+}
+
+// Supply Request Service Types
+export interface SupplyRequest extends Request {
+  payload: {
+    purpose: string
+    requestedDate: string
+  }
+  status: 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+}
+
+export interface SupplyRequestItem extends Omit<RequestItem, 'item_name' | 'description'> {
+  name: string // Maps to item_name in database
+  notes?: string // Maps to description in database
+}
+
+export interface CreateSupplyRequestPayload {
+  title: string
+  purpose: string
+  requestedDate: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  items: Array<{
+    name: string
+    quantity: number
+    unit: string
+    notes?: string
+  }>
+}
+
+export interface SupplyRequestWithItems extends SupplyRequest {
+  items: SupplyRequestItem[]
+}
+
+// Approval Service Types
+export interface ApprovalAction {
+  action: 'approve' | 'reject'
+  comments?: string
+}
+
+export interface PendingApprovalRequest extends Request {
+  request_type: RequestType
+  requester: Profile
+  current_step: ApprovalStep
+}
+
+// =============================================================================
 // Type Guards
 // =============================================================================

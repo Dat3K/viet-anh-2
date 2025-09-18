@@ -1,0 +1,747 @@
+'use client'
+
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { toast } from 'sonner'
+import { supplyRequestService } from '@/lib/services/supply-request-service'
+import type { 
+  CreateSupplyRequestPayload,
+  SupplyRequestWithItems 
+} from '@/types/database'
+import { useAuth } from '@/hooks/use-auth'
+
+// Optimized Query keys with hierarchical structure
+export const supplyRequestKeys = {
+  all: ['supply-requests'] as const,
+  lists: () => [...supplyRequestKeys.all, 'list'] as const,
+  list: (userId: string, filters?: string) => [...supplyRequestKeys.lists(), userId, filters].filter(Boolean),
+  details: () => [...supplyRequestKeys.all, 'detail'] as const,
+  detail: (id: string) => [...supplyRequestKeys.details(), id] as const,
+  types: () => [...supplyRequestKeys.all, 'types'] as const,
+  approvals: () => [...supplyRequestKeys.all, 'approvals'] as const,
+  pendingApprovals: (userId: string) => [...supplyRequestKeys.approvals(), 'pending', userId] as const,
+}
+
+// Mutation keys for better organization
+export const supplyRequestMutationKeys = {
+  create: ['supply-requests', 'create'] as const,
+  update: ['supply-requests', 'update'] as const,
+  delete: ['supply-requests', 'delete'] as const,
+  approve: ['supply-requests', 'approve'] as const,
+}
+
+// Type definitions for filters
+export type StatusFilter = 'all' | 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled'
+export type PriorityFilter = 'all' | 'low' | 'medium' | 'high' | 'urgent'
+
+/**
+ * Hook to fetch user's supply requests with optimized caching and error handling
+ */
+export function useSupplyRequests() {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: supplyRequestKeys.list(user?.id || ''),
+    queryFn: async () => {
+      const result = await supplyRequestService.getUserSupplyRequests()
+      // Service returns data directly or undefined on error
+      return result || []
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes (increased for better UX)
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    placeholderData: keepPreviousData, // Smooth transitions between data
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors or client errors
+      if (error?.message?.includes('not authenticated') || error?.status < 500) return false
+      return failureCount < 2 // Reduced retry attempts
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+  })
+}
+
+/**
+ * Hook to fetch a single supply request by ID with optimized caching
+ */
+export function useSupplyRequest(id: string) {
+  return useQuery({
+    queryKey: supplyRequestKeys.detail(id),
+    queryFn: async () => {
+      const result = await supplyRequestService.getSupplyRequestById(id)
+      // Service returns data directly or null/undefined on error
+      return result || null
+    },
+    enabled: !!id,
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+  })
+}
+
+/**
+ * Hook to create supply request with enhanced optimistic updates and error handling
+ */
+export function useCreateSupplyRequest() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationKey: supplyRequestMutationKeys.create,
+    mutationFn: async (data: CreateSupplyRequestPayload) => {
+      const result = await supplyRequestService.createSupplyRequest(data)
+      
+      // Handle service response format
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to create supply request')
+      }
+      
+      if (!result.data) {
+        throw new Error('No data returned from create request')
+      }
+      
+      return result.data
+    },
+    
+    // Enhanced optimistic update
+    onMutate: async (newRequestData) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const userQueryKey = supplyRequestKeys.list(user.id)
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: userQueryKey })
+
+      // Snapshot the previous value
+      const previousRequests = queryClient.getQueryData<SupplyRequestWithItems[]>(userQueryKey)
+
+      // Create optimistic request with proper typing
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const optimisticRequest: SupplyRequestWithItems = {
+        id: tempId,
+        request_number: `TEMP-${Date.now()}`,
+        title: newRequestData.title,
+        request_type_id: 'temp-supply-request-id',
+        requester_id: user.id,
+        workflow_id: null,
+        current_step_id: null,
+        status: 'pending',
+        priority: newRequestData.priority,
+        payload: {
+          purpose: newRequestData.purpose,
+          requestedDate: newRequestData.requestedDate
+        },
+        requested_date: newRequestData.requestedDate,
+        due_date: null,
+        completed_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        items: newRequestData.items.map((item, index) => ({
+          id: `temp-item-${tempId}-${index}`,
+          request_id: tempId,
+          item_name: item.name,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          description: item.notes || null,
+          notes: item.notes,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }))
+      }
+
+      // Optimistically update the cache
+      queryClient.setQueryData<SupplyRequestWithItems[]>(
+        userQueryKey,
+        (old = []) => [optimisticRequest, ...old]
+      )
+
+      return { previousRequests, optimisticRequest, userQueryKey }
+    },
+
+    // Enhanced success handling
+    onSuccess: (result, variables, context) => {
+      if (!context) return
+
+      // Replace optimistic request with real data
+      queryClient.setQueryData<SupplyRequestWithItems[]>(
+        context.userQueryKey,
+        (old = []) => old.map(request => 
+          request.id === context.optimisticRequest.id ? result : request
+        )
+      )
+
+      // Show success toast with more details
+      toast.success('Yêu cầu vật tư đã được tạo thành công!', {
+        description: `Mã yêu cầu: ${result.request_number} • ${result.items?.length || 0} vật tư`,
+        duration: 5000,
+      })
+    },
+
+    // Enhanced error handling
+    onError: (error, variables, context) => {
+      // Revert to previous state
+      if (context?.previousRequests && context?.userQueryKey) {
+        queryClient.setQueryData(context.userQueryKey, context.previousRequests)
+      }
+
+      // Enhanced error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Có lỗi xảy ra khi tạo yêu cầu'
+      
+      toast.error('Không thể tạo yêu cầu vật tư', {
+        description: errorMessage,
+        duration: 7000,
+        action: {
+          label: 'Thử lại',
+          onClick: () => {
+            // Could implement retry logic here
+          }
+        }
+      })
+
+      // Log error for debugging
+      console.error('Create supply request error:', error)
+    },
+
+    // Always refetch after completion
+    onSettled: (data, error, variables, context) => {
+      if (context?.userQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.userQueryKey })
+      }
+      // Also invalidate request types in case they changed
+      queryClient.invalidateQueries({ queryKey: supplyRequestKeys.types() })
+    },
+
+    // Enhanced retry configuration
+    retry: (failureCount, error: any) => {
+      // Don't retry on validation errors or auth errors
+      if (error?.message?.includes('not authenticated') || 
+          error?.message?.includes('validation') ||
+          error?.status === 400 || error?.status === 401 || error?.status === 403) {
+        return false
+      }
+      return failureCount < 2
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  })
+}
+
+/**
+ * Hook to update supply request status with enhanced optimistic updates
+ */
+export function useUpdateSupplyRequestStatus() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationKey: supplyRequestMutationKeys.update,
+    mutationFn: async ({ id, status }: { 
+      id: string; 
+      status: 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled' 
+    }) => {
+      const result = await supplyRequestService.updateSupplyRequestStatus(id, status)
+      // Service returns data directly or throws error
+      if (!result) throw new Error('Failed to update request status')
+      return result
+    },
+
+    onMutate: async ({ id, status }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const userQueryKey = supplyRequestKeys.list(user.id)
+      const detailQueryKey = supplyRequestKeys.detail(id)
+      
+      // Cancel outgoing refetches
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: userQueryKey }),
+        queryClient.cancelQueries({ queryKey: detailQueryKey })
+      ])
+
+      // Snapshot previous values
+      const previousRequests = queryClient.getQueryData<SupplyRequestWithItems[]>(userQueryKey)
+      const previousRequest = queryClient.getQueryData<SupplyRequestWithItems>(detailQueryKey)
+
+      const updateTimestamp = new Date().toISOString()
+
+      // Optimistically update list
+      queryClient.setQueryData<SupplyRequestWithItems[]>(
+        userQueryKey,
+        (old = []) => old.map(request => 
+          request.id === id 
+            ? { ...request, status, updated_at: updateTimestamp }
+            : request
+        )
+      )
+
+      // Optimistically update detail
+      if (previousRequest) {
+        queryClient.setQueryData<SupplyRequestWithItems>(
+          detailQueryKey,
+          { ...previousRequest, status, updated_at: updateTimestamp }
+        )
+      }
+
+      return { previousRequests, previousRequest, userQueryKey, detailQueryKey }
+    },
+
+    onSuccess: (result, { status }) => {
+      const statusLabels = {
+        pending: 'Chờ xử lý',
+        in_progress: 'Đang xử lý',
+        approved: 'Đã duyệt',
+        rejected: 'Từ chối',
+        cancelled: 'Đã hủy'
+      }
+
+      toast.success('Cập nhật trạng thái thành công!', {
+        description: `Trạng thái: ${statusLabels[status]}`,
+        duration: 4000,
+      })
+    },
+
+    onError: (error, { id }, context) => {
+      // Revert optimistic updates
+      if (context?.previousRequests && context?.userQueryKey) {
+        queryClient.setQueryData(context.userQueryKey, context.previousRequests)
+      }
+      if (context?.previousRequest && context?.detailQueryKey) {
+        queryClient.setQueryData(context.detailQueryKey, context.previousRequest)
+      }
+
+      toast.error('Không thể cập nhật trạng thái', {
+        description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+        duration: 6000,
+      })
+    },
+
+    onSettled: (data, error, { id }, context) => {
+      // Invalidate related queries
+      if (context?.userQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.userQueryKey })
+      }
+      if (context?.detailQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.detailQueryKey })
+      }
+    }
+  })
+}
+
+/**
+ * Hook to delete supply request with enhanced optimistic updates
+ */
+export function useDeleteSupplyRequest() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationKey: supplyRequestMutationKeys.delete,
+    mutationFn: async (id: string) => {
+      // Service method performs soft delete (sets status to cancelled)
+      await supplyRequestService.deleteSupplyRequest(id)
+      return id
+    },
+
+    onMutate: async (id) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const userQueryKey = supplyRequestKeys.list(user.id)
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: userQueryKey })
+
+      // Snapshot previous value
+      const previousRequests = queryClient.getQueryData<SupplyRequestWithItems[]>(userQueryKey)
+      const requestToDelete = previousRequests?.find(r => r.id === id)
+
+      // Optimistically remove from list
+      queryClient.setQueryData<SupplyRequestWithItems[]>(
+        userQueryKey,
+        (old = []) => old.filter(request => request.id !== id)
+      )
+
+      return { previousRequests, requestToDelete, userQueryKey }
+    },
+
+    onSuccess: (deletedId, variables, context) => {
+      toast.success('Yêu cầu đã được hủy thành công!', {
+        description: context?.requestToDelete?.title || 'Yêu cầu vật tư',
+        duration: 4000,
+      })
+    },
+
+    onError: (error, id, context) => {
+      // Revert optimistic update
+      if (context?.previousRequests && context?.userQueryKey) {
+        queryClient.setQueryData(context.userQueryKey, context.previousRequests)
+      }
+
+      toast.error('Không thể hủy yêu cầu', {
+        description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+        duration: 6000,
+      })
+    },
+
+    onSettled: (data, error, variables, context) => {
+      if (context?.userQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.userQueryKey })
+      }
+    }
+  })
+}
+
+/**
+ * Hook to get request types with enhanced caching
+ */
+export function useRequestTypes() {
+  return useQuery({
+    queryKey: supplyRequestKeys.types(),
+    queryFn: async () => {
+      const result = await supplyRequestService.getRequestTypes()
+      // Service returns data directly or undefined on error
+      return result || []
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+    refetchOnWindowFocus: false,
+    retry: 2,
+  })
+}
+
+/**
+ * Hook to fetch pending approval requests with optimized caching
+ */
+export function usePendingApprovalRequests() {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: supplyRequestKeys.pendingApprovals(user?.id || ''),
+    queryFn: async () => {
+      const result = await supplyRequestService.getPendingApprovalRequests()
+      // Service returns data directly or undefined on error
+      return result || []
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchOnWindowFocus: true, // Important for approval workflows
+    retry: 2,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Hook to process approval with enhanced optimistic updates and error handling
+ */
+export function useProcessApproval() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationKey: supplyRequestMutationKeys.approve,
+    mutationFn: async ({ requestId, action, comments }: {
+      requestId: string
+      action: 'approve' | 'reject'
+      comments?: string
+    }) => {
+      const result = await supplyRequestService.processApproval(requestId, action, comments)
+      // Service returns result directly or throws error
+      if (!result) throw new Error('Failed to process approval')
+      return result
+    },
+
+    onMutate: async ({ requestId, action }) => {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      const pendingApprovalsKey = supplyRequestKeys.pendingApprovals(user.id)
+      const detailQueryKey = supplyRequestKeys.detail(requestId)
+      
+      // Cancel outgoing refetches
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: pendingApprovalsKey }),
+        queryClient.cancelQueries({ queryKey: detailQueryKey })
+      ])
+
+      // Snapshot previous values
+      const previousPendingRequests = queryClient.getQueryData<SupplyRequestWithItems[]>(pendingApprovalsKey)
+      const previousRequest = queryClient.getQueryData<SupplyRequestWithItems>(detailQueryKey)
+
+      // Optimistically update pending requests (remove processed request)
+      queryClient.setQueryData<SupplyRequestWithItems[]>(
+        pendingApprovalsKey,
+        (old = []) => old.filter(request => request.id !== requestId)
+      )
+
+      // Optimistically update request detail
+      if (previousRequest) {
+        const newStatus = action === 'approve' ? 'approved' : 'rejected'
+        const updateTimestamp = new Date().toISOString()
+        
+        queryClient.setQueryData<SupplyRequestWithItems>(
+          detailQueryKey,
+          { 
+            ...previousRequest, 
+            status: newStatus, 
+            updated_at: updateTimestamp,
+            completed_at: updateTimestamp
+          }
+        )
+      }
+
+      return { 
+        previousPendingRequests, 
+        previousRequest, 
+        pendingApprovalsKey, 
+        detailQueryKey 
+      }
+    },
+
+    onSuccess: (result, { action, requestId }, context) => {
+      const actionLabels = {
+        approve: 'Đã phê duyệt',
+        reject: 'Đã từ chối'
+      }
+
+      toast.success(`${actionLabels[action]} yêu cầu thành công!`, {
+        description: result.message || `Yêu cầu ${requestId}`,
+        duration: 5000,
+      })
+
+      // Invalidate user's own requests if they might be affected
+      if (user?.id) {
+        queryClient.invalidateQueries({ 
+          queryKey: supplyRequestKeys.list(user.id) 
+        })
+      }
+    },
+
+    onError: (error, { requestId }, context) => {
+      // Revert optimistic updates
+      if (context?.previousPendingRequests && context?.pendingApprovalsKey) {
+        queryClient.setQueryData(context.pendingApprovalsKey, context.previousPendingRequests)
+      }
+      if (context?.previousRequest && context?.detailQueryKey) {
+        queryClient.setQueryData(context.detailQueryKey, context.previousRequest)
+      }
+
+      toast.error('Không thể xử lý phê duyệt', {
+        description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+        duration: 7000,
+      })
+    },
+
+    onSettled: (data, error, { requestId }, context) => {
+      // Invalidate related queries
+      if (context?.pendingApprovalsKey) {
+        queryClient.invalidateQueries({ queryKey: context.pendingApprovalsKey })
+      }
+      if (context?.detailQueryKey) {
+        queryClient.invalidateQueries({ queryKey: context.detailQueryKey })
+      }
+    }
+  })
+}
+
+/**
+ * Enhanced hook for real-time supply request updates with better integration
+ */
+export function useSupplyRequestRealtime() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!user?.id) return
+
+    // Subscribe to supply request updates using service layer
+    const requestSubscription = supplyRequestService.subscribeToSupplyRequests(
+      user.id,
+      {
+        onRequestUpdate: (payload: any) => {
+          // More granular cache updates
+          const userQueryKey = supplyRequestKeys.list(user.id)
+          
+          // Invalidate list queries
+          queryClient.invalidateQueries({ queryKey: userQueryKey })
+          
+          // If it's a specific request update, invalidate that detail too
+          if (payload.new?.id) {
+            queryClient.invalidateQueries({ 
+              queryKey: supplyRequestKeys.detail(payload.new.id) 
+            })
+          }
+
+          // Also invalidate pending approvals if this user might be an approver
+          queryClient.invalidateQueries({ 
+            queryKey: supplyRequestKeys.pendingApprovals(user.id) 
+          })
+        },
+        onItemUpdate: (payload: any) => {
+          // Handle item updates
+          if (payload.new?.request_id) {
+            queryClient.invalidateQueries({ 
+              queryKey: supplyRequestKeys.detail(payload.new.request_id) 
+            })
+            queryClient.invalidateQueries({ 
+              queryKey: supplyRequestKeys.list(user.id) 
+            })
+          }
+        },
+        onError: (error: any) => {
+          console.error('Real-time subscription error:', error)
+          // Could show a toast notification about connection issues
+        }
+      }
+    )
+
+    // Subscribe to approval updates using service layer
+    const approvalSubscription = supplyRequestService.subscribeToApprovalUpdates(
+      user.id,
+      {
+        onApprovalUpdate: (payload: any) => {
+          // Invalidate pending approvals when approval status changes
+          queryClient.invalidateQueries({ 
+            queryKey: supplyRequestKeys.pendingApprovals(user.id) 
+          })
+          
+          // If we know the request ID, invalidate its detail
+          if (payload.new?.request_id) {
+            queryClient.invalidateQueries({ 
+              queryKey: supplyRequestKeys.detail(payload.new.request_id) 
+            })
+          }
+        },
+        onError: (error: any) => {
+          console.error('Approval subscription error:', error)
+        }
+      }
+    )
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supplyRequestService.unsubscribeFromSupplyRequests(user.id)
+      supplyRequestService.unsubscribeFromApprovalUpdates(user.id)
+    }
+  }, [user?.id, queryClient])
+
+  // Return subscription status
+  return { isConnected: !!user?.id }
+}
+
+/**
+ * Hook to manage supply request filters with enhanced state management
+ */
+export function useSupplyRequestFilters() {
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all' as StatusFilter,
+    priority: 'all' as PriorityFilter,
+  })
+
+  const updateFilter = useCallback((key: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }, [])
+
+  const resetFilters = useCallback(() => {
+    setFilters({
+      search: '',
+      status: 'all',
+      priority: 'all',
+    })
+  }, [])
+
+  // Memoized filtered results helper
+  const getFilteredRequests = useCallback((requests: SupplyRequestWithItems[] = []) => {
+    return requests.filter(request => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        const matchesSearch = 
+          request.title.toLowerCase().includes(searchLower) ||
+          request.request_number?.toLowerCase().includes(searchLower) ||
+          request.items?.some(item => 
+            item.name?.toLowerCase().includes(searchLower)
+          )
+        if (!matchesSearch) return false
+      }
+
+      // Status filter
+      if (filters.status !== 'all' && request.status !== filters.status) {
+        return false
+      }
+
+      // Priority filter
+      if (filters.priority !== 'all' && request.priority !== filters.priority) {
+        return false
+      }
+
+      return true
+    })
+  }, [filters])
+
+  return {
+    filters,
+    updateFilter,
+    resetFilters,
+    getFilteredRequests,
+  }
+}
+
+/**
+ * Hook to compute supply request statistics with enhanced metrics
+ */
+export function useSupplyRequestStats(requests?: SupplyRequestWithItems[]) {
+  return useMemo(() => {
+    if (!requests?.length) return {
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      totalItems: 0,
+      avgItemsPerRequest: 0,
+    }
+
+    const stats = requests.reduce((acc, request) => {
+      acc.total++
+      acc.totalItems += request.items?.length || 0
+      
+      switch (request.status) {
+        case 'pending':
+          acc.pending++
+          break
+        case 'in_progress':
+          acc.inProgress++
+          break
+        case 'approved':
+          acc.approved++
+          break
+        case 'rejected':
+          acc.rejected++
+          break
+        case 'cancelled':
+          acc.cancelled++
+          break
+      }
+      
+      return acc
+    }, {
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      totalItems: 0,
+    })
+
+    return {
+      ...stats,
+      avgItemsPerRequest: stats.total > 0 ? Math.round((stats.totalItems / stats.total) * 10) / 10 : 0,
+    }
+  }, [requests])
+}

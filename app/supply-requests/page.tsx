@@ -1,176 +1,146 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus, History, CheckCircle, Clock, FileText, ArrowRight } from "lucide-react"
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/layout/app-layout'
-import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { 
+  Plus, 
+  RefreshCw,
+  AlertCircle,
+  Clock
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { 
+  useSupplyRequests, 
+  useSupplyRequestFilters,
+  useSupplyRequestStats,
+  useDeleteSupplyRequest,
+  useSupplyRequestRealtime
+} from '@/hooks/use-supply-requests'
+import {
+  StatsCards,
+  FiltersSection,
+  RequestsTable,
+  EmptyState,
+  StatusFilter,
+  PriorityFilter
+} from '@/components/supply-requests'
 
 export default function SupplyRequestsPage() {
-  const requestSections = [
-    {
-      title: "Tạo yêu cầu mới",
-      description: "Tạo yêu cầu vật tư, thiết bị giảng dạy mới",
-      icon: Plus,
-      href: "/supply-requests/create",
-      color: "bg-blue-500",
-      stats: "Bắt đầu ngay"
-    },
-    {
-      title: "Lịch sử yêu cầu",
-      description: "Xem tất cả các yêu cầu đã tạo trước đây",
-      icon: History,
-      href: "/supply-requests/history",
-      color: "bg-green-500",
-      stats: "45 yêu cầu"
-    },
-    {
-      title: "Phê duyệt yêu cầu",
-      description: "Duyệt các yêu cầu từ giáo viên khác",
-      icon: CheckCircle,
-      href: "/supply-requests/approve",
-      color: "bg-purple-500",
-      stats: "12 chờ duyệt"
-    },
-    {
-      title: "Yêu cầu chờ xử lý",
-      description: "Theo dõi các yêu cầu đang được xử lý",
-      icon: Clock,
-      href: "/supply-requests/pending",
-      color: "bg-orange-500",
-      stats: "8 đang xử lý"
+  const router = useRouter()
+  
+  // Use hooks
+  const { data: requests = [], isLoading, error } = useSupplyRequests()
+  const { filters, updateFilter, resetFilters } = useSupplyRequestFilters()
+  const stats = useSupplyRequestStats(requests)
+  
+  // Enable real-time updates
+  useSupplyRequestRealtime()
+  
+  // Mutations
+  const deleteMutation = useDeleteSupplyRequest()
+
+  // Filter requests based on current filters
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = !filters.search || 
+      request.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      request.request_number.toLowerCase().includes(filters.search.toLowerCase())
+    
+    const matchesStatus = filters.status === 'all' || request.status === filters.status
+    const matchesPriority = filters.priority === 'all' || request.priority === filters.priority
+    
+    return matchesSearch && matchesStatus && matchesPriority
+  })
+
+  const handleDelete = async (requestId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) return
+    
+    try {
+      await deleteMutation.mutateAsync(requestId)
+      toast.success('Xóa yêu cầu thành công!')
+    } catch (error) {
+      toast.error('Không thể xóa yêu cầu')
     }
-  ]
+  }
+
+  const handleView = (requestId: string) => {
+    router.push(`/supply-requests/${requestId}`)
+  }
+
+  const handleEdit = (requestId: string) => {
+    router.push(`/supply-requests/${requestId}/edit`)
+  }
+
+  const handleCreateNew = () => {
+    router.push('/supply-requests/create')
+  }
+
+  const hasFilters = filters.search || filters.status !== 'all' || filters.priority !== 'all'
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Có lỗi xảy ra</h2>
+            <p className="text-muted-foreground">{error.message}</p>
+          </div>
+          <Button onClick={() => router.refresh()} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Thử lại
+          </Button>
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Quản lý yêu cầu vật tư</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Yêu cầu vật tư</h1>
             <p className="text-muted-foreground">
-              Chọn chức năng bạn muốn sử dụng để quản lý yêu cầu vật tư và thiết bị giảng dạy
+              Quản lý và theo dõi các yêu cầu vật tư của bạn
             </p>
           </div>
+          <Button onClick={handleCreateNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tạo yêu cầu mới
+          </Button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <FileText className="h-8 w-8 text-blue-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Tổng yêu cầu</p>
-                  <p className="text-2xl font-bold">65</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-orange-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Chờ xử lý</p>
-                  <p className="text-2xl font-bold">8</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Đã duyệt</p>
-                  <p className="text-2xl font-bold">45</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Plus className="h-8 w-8 text-purple-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Tháng này</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Statistics Cards */}
+        <StatsCards stats={stats} />
 
-        {/* Main Navigation Cards */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {requestSections.map((section) => (
-            <Card key={section.title} className="hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${section.color}`}>
-                      <section.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">{section.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {section.description}
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {section.stats}
-                  </span>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={section.href}>
-                      Truy cập
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Filters */}
+        <FiltersSection
+          filters={filters}
+          onUpdateFilter={updateFilter}
+          onResetFilters={resetFilters}
+          isLoading={isLoading}
+        />
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Hoạt động gần đây</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Yêu cầu mua bút viết - Lớp 10A</p>
-                  <p className="text-xs text-muted-foreground">2 giờ trước • Chờ duyệt</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Đề nghị in tài liệu - Lớp 9B</p>
-                  <p className="text-xs text-muted-foreground">5 giờ trước • Đã duyệt</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Yêu cầu thiết bị trình chiếu - Phòng họp</p>
-                  <p className="text-xs text-muted-foreground">1 ngày trước • Đang xử lý</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Requests Table */}
+        {filteredRequests.length === 0 && !isLoading ? (
+          <EmptyState
+            type={hasFilters ? 'no-filtered-results' : 'no-requests'}
+            onCreateNew={handleCreateNew}
+            onResetFilters={hasFilters ? resetFilters : undefined}
+          />
+        ) : (
+          <RequestsTable
+            requests={filteredRequests}
+            isLoading={isLoading}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onCreateNew={handleCreateNew}
+            isDeleting={deleteMutation.isPending}
+          />
+        )}
       </div>
     </AppLayout>
   )
