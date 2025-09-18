@@ -1,11 +1,8 @@
+import type { RequestWithDetails, RequestInsert, RequestUpdate } from '@/types/database'
+import type { Json } from '@/types/database.types'
 import { BaseService } from './base-service'
-import type { 
-  Request, 
-  RequestInsert, 
-  RequestUpdate,
-  RequestWithDetails
-} from '@/types/database'
 import { workflowService } from './workflow-service'
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 /**
  * Generic request service for all request types
@@ -397,12 +394,18 @@ export class RequestService extends BaseService {
       let totalProcessingTime = 0
       let completedCount = 0
 
-      detailsResult.data?.forEach((request: any) => {
+      detailsResult.data?.forEach((request: {
+        status: string
+        priority: string
+        created_at: string
+        completed_at: string | null
+        request_type: Array<{ name: string; display_name: string }>
+      }) => {
         // Count by status
         statusCounts.set(request.status, (statusCounts.get(request.status) || 0) + 1)
         
         // Count by type
-        const typeName = request.request_type?.display_name || 'Unknown'
+        const typeName = request.request_type?.[0]?.display_name || 'Unknown'
         typeCounts.set(typeName, (typeCounts.get(typeName) || 0) + 1)
         
         // Count by priority
@@ -446,8 +449,7 @@ export class RequestService extends BaseService {
    */
   subscribeToRequests(
     userId: string,
-    onUpdate: (payload: any) => void,
-    requestType?: string
+    onUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void,
   ) {
     let channel = this.supabase
       .channel('requests')
@@ -517,7 +519,7 @@ export class RequestService extends BaseService {
         cancelled: 0
       }
 
-      data?.forEach((request: any) => {
+      data?.forEach((request: { status: string }) => {
         summary.total++
         switch (request.status) {
           case 'pending':
@@ -551,7 +553,7 @@ export class RequestService extends BaseService {
     title: string
     requestTypeId: string
     priority: 'low' | 'medium' | 'high' | 'urgent'
-    payload?: any
+    payload?: Json
     requestedDate?: string
     dueDate?: string
   }): Promise<RequestWithDetails> {
@@ -563,13 +565,13 @@ export class RequestService extends BaseService {
       const workflowAssignment = await workflowService.assignWorkflowToRequest(data.requestTypeId, profile.role_id)
 
       // Create the main request with workflow initialization
-      const insertData: any = {
+      const insertData: Omit<RequestInsert, 'request_number'> = {
         title: data.title,
         request_type_id: data.requestTypeId,
         requester_id: user.id,
         status: workflowAssignment.status,
         priority: data.priority,
-        payload: data.payload || {},
+        payload: data.payload || null,
         requested_date: data.requestedDate,
         due_date: data.dueDate,
         workflow_id: workflowAssignment.workflowId,

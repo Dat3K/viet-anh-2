@@ -1,14 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { toast } from 'sonner'
+import type { CreateSupplyRequestPayload, SupplyRequestWithItems } from '@/types/database'
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import type { StatusType } from '@/components/ui/status-badge'
+import type { PriorityType } from '@/components/ui/priority-badge'
+import { useAuth } from './use-auth'
 import { supplyRequestService } from '@/lib/services/supply-request-service'
-import type { 
-  CreateSupplyRequestPayload,
-  SupplyRequestWithItems 
-} from '@/types/database'
-import { useAuth } from '@/hooks/use-auth'
+import { toast } from 'sonner'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 
 // Optimized Query keys with hierarchical structure
 export const supplyRequestKeys = {
@@ -31,8 +31,8 @@ export const supplyRequestMutationKeys = {
 }
 
 // Type definitions for filters
-export type StatusFilter = 'all' | 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled'
-export type PriorityFilter = 'all' | 'low' | 'medium' | 'high' | 'urgent'
+export type StatusFilter = StatusType | 'all'
+export type PriorityFilter = PriorityType | 'all'
 
 /**
  * Hook to fetch user's supply requests with optimized caching and error handling
@@ -53,9 +53,9 @@ export function useSupplyRequests() {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     placeholderData: keepPreviousData, // Smooth transitions between data
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error) => {
       // Don't retry on auth errors or client errors
-      if (error?.message?.includes('not authenticated') || error?.status < 500) return false
+      if (error?.message?.includes('not authenticated')) return false
       return failureCount < 2 // Reduced retry attempts
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
@@ -173,7 +173,6 @@ export function useCreateSupplyRequest() {
         )
       )
 
-      // Show success toast with more details
       toast.success('Yêu cầu vật tư đã được tạo thành công!', {
         description: `Mã yêu cầu: ${result.request_number} • ${result.items?.length || 0} vật tư`,
         duration: 5000,
@@ -217,11 +216,10 @@ export function useCreateSupplyRequest() {
     },
 
     // Enhanced retry configuration
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error) => {
       // Don't retry on validation errors or auth errors
       if (error?.message?.includes('not authenticated') || 
-          error?.message?.includes('validation') ||
-          error?.status === 400 || error?.status === 401 || error?.status === 403) {
+          error?.message?.includes('validation')) {
         return false
       }
       return failureCount < 2
@@ -303,7 +301,7 @@ export function useUpdateSupplyRequestStatus() {
       })
     },
 
-    onError: (error, { id }, context) => {
+    onError: (error, variables, context) => {
       // Revert optimistic updates
       if (context?.previousRequests && context?.userQueryKey) {
         queryClient.setQueryData(context.userQueryKey, context.previousRequests)
@@ -318,7 +316,7 @@ export function useUpdateSupplyRequestStatus() {
       })
     },
 
-    onSettled: (data, error, { id }, context) => {
+    onSettled: (data, error, variables, context) => {
       // Invalidate related queries
       if (context?.userQueryKey) {
         queryClient.invalidateQueries({ queryKey: context.userQueryKey })
@@ -500,14 +498,14 @@ export function useProcessApproval() {
       }
     },
 
-    onSuccess: (result, { action, requestId }, context) => {
+    onSuccess: (result, { action }) => {
       const actionLabels = {
         approve: 'Đã phê duyệt',
         reject: 'Đã từ chối'
       }
 
       toast.success(`${actionLabels[action]} yêu cầu thành công!`, {
-        description: result.message || `Yêu cầu ${requestId}`,
+        description: result.message || 'Yêu cầu đã được xử lý',
         duration: 5000,
       })
 
@@ -519,7 +517,7 @@ export function useProcessApproval() {
       }
     },
 
-    onError: (error, { requestId }, context) => {
+    onError: (error, variables, context) => {
       // Revert optimistic updates
       if (context?.previousPendingRequests && context?.pendingApprovalsKey) {
         queryClient.setQueryData(context.pendingApprovalsKey, context.previousPendingRequests)
@@ -534,7 +532,7 @@ export function useProcessApproval() {
       })
     },
 
-    onSettled: (data, error, { requestId }, context) => {
+    onSettled: (data, error, variables, context) => {
       // Invalidate related queries
       if (context?.pendingApprovalsKey) {
         queryClient.invalidateQueries({ queryKey: context.pendingApprovalsKey })
@@ -557,10 +555,10 @@ export function useSupplyRequestRealtime() {
     if (!user?.id) return
 
     // Subscribe to supply request updates using service layer
-    const requestSubscription = supplyRequestService.subscribeToSupplyRequests(
+    supplyRequestService.subscribeToSupplyRequests(
       user.id,
       {
-        onRequestUpdate: (payload: any) => {
+        onRequestUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // More granular cache updates
           const userQueryKey = supplyRequestKeys.list(user.id)
           
@@ -568,9 +566,9 @@ export function useSupplyRequestRealtime() {
           queryClient.invalidateQueries({ queryKey: userQueryKey })
           
           // If it's a specific request update, invalidate that detail too
-          if (payload.new?.id) {
+          if (payload.new && 'id' in payload.new && payload.new.id) {
             queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.detail(payload.new.id) 
+              queryKey: supplyRequestKeys.detail(payload.new.id as string) 
             })
           }
 
@@ -579,18 +577,18 @@ export function useSupplyRequestRealtime() {
             queryKey: supplyRequestKeys.pendingApprovals(user.id) 
           })
         },
-        onItemUpdate: (payload: any) => {
+        onItemUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // Handle item updates
-          if (payload.new?.request_id) {
+          if (payload.new && 'request_id' in payload.new && payload.new.request_id) {
             queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.detail(payload.new.request_id) 
+              queryKey: supplyRequestKeys.detail(payload.new.request_id as string) 
             })
             queryClient.invalidateQueries({ 
               queryKey: supplyRequestKeys.list(user.id) 
             })
           }
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
           console.error('Real-time subscription error:', error)
           // Could show a toast notification about connection issues
         }
@@ -598,23 +596,23 @@ export function useSupplyRequestRealtime() {
     )
 
     // Subscribe to approval updates using service layer
-    const approvalSubscription = supplyRequestService.subscribeToApprovalUpdates(
+    supplyRequestService.subscribeToApprovalUpdates(
       user.id,
       {
-        onApprovalUpdate: (payload: any) => {
+        onApprovalUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // Invalidate pending approvals when approval status changes
           queryClient.invalidateQueries({ 
             queryKey: supplyRequestKeys.pendingApprovals(user.id) 
           })
           
           // If we know the request ID, invalidate its detail
-          if (payload.new?.request_id) {
+          if (payload.new && 'request_id' in payload.new && payload.new.request_id) {
             queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.detail(payload.new.request_id) 
+              queryKey: supplyRequestKeys.detail(payload.new.request_id as string) 
             })
           }
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
           console.error('Approval subscription error:', error)
         }
       }
@@ -642,14 +640,14 @@ export function useSupplyRequestFilters() {
   })
 
   const updateFilter = useCallback((key: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+    setFilters((prev: typeof filters) => ({ ...prev, [key]: value }))
   }, [])
 
   const resetFilters = useCallback(() => {
     setFilters({
       search: '',
-      status: 'all',
-      priority: 'all',
+      status: 'all' as StatusFilter,
+      priority: 'all' as PriorityFilter,
     })
   }, [])
 

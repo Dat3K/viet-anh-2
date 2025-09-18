@@ -1,14 +1,11 @@
 import { BaseService } from './base-service'
 import { workflowService } from './workflow-service'
 import type { 
-  RequestApproval, 
-  RequestApprovalInsert,
-  RequestApprovalWithDetails,
+  RequestApproval,
   Request,
+  RequestType,
   Profile,
   ApprovalStep,
-  RequestType,
-  ApprovalStatus,
   ApprovalAction,
   PendingApprovalRequest
 } from '@/types/database'
@@ -28,22 +25,10 @@ export class ApprovalService extends BaseService {
       const { data, error } = await this.supabase
         .from('requests')
         .select(`
-          id,
-          title,
-          status,
-          priority,
-          requester_id,
-          current_step_id,
-          created_at,
-          request_types!inner(name, display_name),
-          profiles!inner(full_name, email),
-          approval_steps!inner(
-            id,
-            step_order,
-            step_name,
-            approver_role_id,
-            approver_employee_id
-          )
+          *,
+          request_types!inner(*),
+          profiles!inner(*),
+          approval_steps!inner(*)
         `)
         .eq('status', 'in_progress')
         .not('current_step_id', 'is', null)
@@ -52,12 +37,19 @@ export class ApprovalService extends BaseService {
 
       if (error) throw error
 
-      return data?.map((request: any) => ({
-        ...request,
-        request_type: request.request_types[0] || {},
-        requester: request.profiles[0] || {},
-        current_step: request.approval_steps[0] || {}
-      })) || []
+      // Type-safe mapping using proper Supabase response types
+      return data?.map((request: Record<string, unknown>): PendingApprovalRequest => {
+        const requestTypes = request.request_types as Array<RequestType>
+        const profiles = request.profiles as Array<Profile>
+        const approvalSteps = request.approval_steps as Array<ApprovalStep>
+
+        return {
+          ...(request as Request),
+          request_type: requestTypes[0],
+          requester: profiles[0],
+          current_step: approvalSteps[0]
+        }
+      }) || []
     } catch (error) {
       this.handleError(error, 'ApprovalService.getPendingApprovalRequests')
     }

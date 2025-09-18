@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { 
   Plus, 
   RefreshCw,
-  AlertCircle,
-  Clock
+  AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { 
@@ -21,9 +20,7 @@ import {
   StatsCards,
   FiltersSection,
   RequestsTable,
-  EmptyState,
-  StatusFilter,
-  PriorityFilter
+  EmptyState
 } from '@/components/supply-requests'
 
 export default function SupplyRequestsPage() {
@@ -59,6 +56,7 @@ export default function SupplyRequestsPage() {
       await deleteMutation.mutateAsync(requestId)
       toast.success('Xóa yêu cầu thành công!')
     } catch (error) {
+      console.error(error)
       toast.error('Không thể xóa yêu cầu')
     }
   }

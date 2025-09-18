@@ -1,19 +1,16 @@
-import { BaseService } from './base-service'
-import { workflowService } from './workflow-service'
-import { requestTypeService } from './request-type-service'
-import { approvalService } from './approval-service'
-import { realtimeManager } from './realtime-manager'
 import type { 
-  Request, 
-  RequestInsert, 
-  RequestItem, 
-  RequestItemInsert,
-  SupplyRequest,
-  SupplyRequestItem,
-  CreateSupplyRequestPayload,
-  SupplyRequestWithItems
+  CreateSupplyRequestPayload, 
+  SupplyRequestWithItems, 
+  RequestInsert,
+  RequestItem,
+  SupplyRequest
 } from '@/types/database'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { BaseService } from './base-service'
+import { realtimeManager } from './realtime-manager'
+import { requestTypeService } from './request-type-service'
+import { workflowService } from './workflow-service'
+import { approvalService } from './approval-service'
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 
 class SupplyRequestService extends BaseService {
@@ -21,12 +18,12 @@ class SupplyRequestService extends BaseService {
   /**
    * Create a new supply request with items - Optimized with better error handling
    */
-  async createSupplyRequest(data: CreateSupplyRequestPayload): Promise<{ data: SupplyRequestWithItems | null; error: any }> {
+  async createSupplyRequest(data: CreateSupplyRequestPayload): Promise<{ data: SupplyRequestWithItems | null; error: Error | null }> {
     try {
       // Get supply request type ID
       const requestType = await requestTypeService.getRequestTypeByName('supply_request')
       if (!requestType) {
-        return { data: null, error: { message: 'Supply request type not found', code: 'REQUEST_TYPE_NOT_FOUND' } }
+        return { data: null, error: new Error('Supply request type not found') }
       }
 
       // Get current user and profile
@@ -37,7 +34,7 @@ class SupplyRequestService extends BaseService {
       const workflowAssignment = await workflowService.assignWorkflowToRequest(requestType.id, profile.role_id)
 
       // Create the main request with workflow initialization
-      const insertData: any = {
+      const insertData: Omit<RequestInsert, 'request_number'> = {
         title: data.title,
         request_type_id: requestType.id,
         requester_id: user.id,
@@ -67,7 +64,7 @@ class SupplyRequestService extends BaseService {
       }
 
       if (!request) {
-        return { data: null, error: { message: 'Failed to create request', code: 'REQUEST_CREATION_FAILED' } }
+        return { data: null, error: new Error('Failed to create request items') }
       }
 
       // Create request items using correct database table and field names
@@ -96,7 +93,7 @@ class SupplyRequestService extends BaseService {
         error: null
       }
     } catch (error) {
-      return { data: null, error }
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   }
 
@@ -214,9 +211,9 @@ class SupplyRequestService extends BaseService {
   subscribeToSupplyRequests(
     userId: string,
     callbacks: {
-      onRequestUpdate?: (payload: any) => void
-      onItemUpdate?: (payload: any) => void
-      onError?: (error: any) => void
+      onRequestUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+      onItemUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+      onError?: (error: Error) => void
     }
   ): RealtimeChannel {
     return realtimeManager.subscribeToSupplyRequests(
@@ -240,8 +237,8 @@ class SupplyRequestService extends BaseService {
   subscribeToApprovalUpdates(
     userId: string,
     callbacks: {
-      onApprovalUpdate?: (payload: any) => void
-      onError?: (error: any) => void
+      onApprovalUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+      onError?: (error: Error) => void
     }
   ): RealtimeChannel {
     return realtimeManager.subscribeToApprovalUpdates(

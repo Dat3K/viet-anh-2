@@ -1,9 +1,7 @@
 import { BaseService } from './base-service'
 import type { 
-  Role, 
   RoleInsert, 
   RoleUpdate,
-  Department,
   ProfileWithDetails,
   RoleWithDepartment
 } from '@/types/database'
@@ -368,8 +366,8 @@ export class RoleService extends BaseService {
 
       // Count by department
       const departmentCounts = new Map<string, number>()
-      departmentResult.data?.forEach((role: any) => {
-        const deptName = role.departments?.name || 'No Department'
+      departmentResult.data?.forEach((role: { department_id: string; departments: { name: string }[] }) => {
+        const deptName = role.departments[0]?.name || 'No Department'
         departmentCounts.set(deptName, (departmentCounts.get(deptName) || 0) + 1)
       })
 
@@ -392,9 +390,8 @@ export class RoleService extends BaseService {
   /**
    * Check if user can manage role (based on hierarchy)
    */
-  async canUserManageRole(roleId: string, userId?: string): Promise<boolean> {
+  async canUserManageRole(roleId: string): Promise<boolean> {
     try {
-      const currentUserId = userId || (await this.getCurrentUser()).id
       const userProfile = await this.getCurrentUserProfile()
       
       if (!userProfile.role_id) return false

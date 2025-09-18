@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { SupabaseClient, PostgrestResponse } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Base service class providing common Supabase functionality
@@ -62,16 +62,17 @@ export abstract class BaseService {
    * Handle database errors with consistent error messages
    * Following Supabase best practice of returning errors instead of throwing
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     console.error(`Error in ${context}:`, error)
     
-    // Enhanced error information for debugging
+    // Type-safe error handling
+    const errorObj = error as Record<string, unknown>
     const enhancedError = {
-      ...error,
+      ...errorObj,
       context,
       timestamp: new Date().toISOString(),
-      code: error?.code || 'UNKNOWN_ERROR',
-      details: error?.details || error?.message || 'Unknown error occurred'
+      code: (errorObj?.code as string) || 'UNKNOWN_ERROR',
+      details: (errorObj?.details as string) || (errorObj?.message as string) || 'Unknown error occurred'
     }
     
     throw enhancedError

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
+import type { RealtimeChannel, SupabaseClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 /**
  * Interface for table subscription configuration
@@ -8,10 +8,10 @@ interface TableSubscription {
   table: string
   filter?: string
   callbacks: {
-    onInsert?: (payload: any) => void
-    onUpdate?: (payload: any) => void
-    onDelete?: (payload: any) => void
-    onError?: (error: any) => void
+    onInsert?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+    onUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+    onDelete?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+    onError?: (error: Error) => void
   }
 }
 
@@ -19,10 +19,10 @@ interface TableSubscription {
  * Interface for supply request specific callbacks
  */
 interface SupplyRequestCallbacks {
-  onRequestUpdate?: (payload: any) => void
-  onItemUpdate?: (payload: any) => void
-  onApprovalUpdate?: (payload: any) => void
-  onError?: (error: any) => void
+  onRequestUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onItemUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onApprovalUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onError?: (error: Error) => void
 }
 
 /**
@@ -39,10 +39,10 @@ interface UserSubscriptionOptions {
  * Interface for single table subscription callbacks
  */
 interface SingleTableCallbacks {
-  onInsert?: (payload: any) => void
-  onUpdate?: (payload: any) => void
-  onDelete?: (payload: any) => void
-  onError?: (error: any) => void
+  onInsert?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onDelete?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
+  onError?: (error: Error) => void
 }
 
 /**
@@ -67,7 +67,7 @@ class RealtimeManager {
   subscribeToMultipleTables(
     channelName: string,
     subscriptions: TableSubscription[],
-    onError?: (error: any) => void
+    onError?: (error: Error) => void
   ): RealtimeChannel {
     // Remove existing channel if it exists
     this.unsubscribe(channelName)
@@ -92,8 +92,9 @@ class RealtimeManager {
             try {
               callbacks.onInsert?.(payload)
             } catch (error) {
-              callbacks.onError?.(error)
-              onError?.(error)
+              const errorObj = error instanceof Error ? error : new Error(String(error))
+              callbacks.onError?.(errorObj)
+              onError?.(errorObj)
             }
           }
         )
@@ -113,8 +114,9 @@ class RealtimeManager {
             try {
               callbacks.onUpdate?.(payload)
             } catch (error) {
-              callbacks.onError?.(error)
-              onError?.(error)
+              const errorObj = error instanceof Error ? error : new Error(String(error))
+              callbacks.onError?.(errorObj)
+              onError?.(errorObj)
             }
           }
         )
@@ -134,8 +136,9 @@ class RealtimeManager {
             try {
               callbacks.onDelete?.(payload)
             } catch (error) {
-              callbacks.onError?.(error)
-              onError?.(error)
+              const errorObj = error instanceof Error ? error : new Error(String(error))
+              callbacks.onError?.(errorObj)
+              onError?.(errorObj)
             }
           }
         )
@@ -361,19 +364,12 @@ class RealtimeManager {
     userId: string,
     callbacks: Pick<SupplyRequestCallbacks, 'onApprovalUpdate' | 'onError'>
   ): RealtimeChannel {
-    const channelName = `approvals-${userId}`
-    
-    return this.subscribeToTable(
-      channelName,
-      'request_approvals',
-      undefined, // No filter - will handle filtering in callback
-      {
-        onInsert: callbacks.onApprovalUpdate,
-        onUpdate: callbacks.onApprovalUpdate,
-        onDelete: callbacks.onApprovalUpdate,
-        onError: callbacks.onError
-      }
-    )
+    return this.subscribeToTable('approval-updates', 'request_approvals', undefined, {
+      onInsert: callbacks.onApprovalUpdate,
+      onUpdate: callbacks.onApprovalUpdate,
+      onDelete: callbacks.onApprovalUpdate,
+      onError: callbacks.onError
+    })
   }
 
   /**
