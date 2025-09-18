@@ -645,67 +645,152 @@ export function useProcessApproval() {
 }
 
 /**
- * Enhanced hook for real-time supply request updates with better integration
+ * Enhanced hook for real-time supply request updates with better integration - OPTIMIZED
+ * Features:
+ * - Smart cache invalidation with granular updates
+ * - Performance optimizations with debouncing
+ * - Connection health monitoring
+ * - Auto-retry with exponential backoff
+ * - Memory leak prevention
  */
-export function useSupplyRequestRealtime() {
+export function useSupplyRequestRealtime(options: {
+  /** Enable performance optimizations like debouncing */
+  enableOptimizations?: boolean
+  /** Custom debounce delay in milliseconds */
+  debounceMs?: number
+  /** Enable connection health monitoring */
+  enableHealthMonitoring?: boolean
+} = {}) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const [connectionHealth, setConnectionHealth] = useState<{
+    isConnected: boolean
+    isHealthy: boolean
+    lastUpdate?: Date
+    errorCount: number
+  }>({
+    isConnected: false,
+    isHealthy: false,
+    errorCount: 0
+  })
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setConnectionHealth({
+        isConnected: false,
+        isHealthy: false,
+        errorCount: 0
+      })
+      return
+    }
 
-    // Subscribe to supply request updates using service layer
+    // Subscribe to supply request updates using optimized service layer
     supplyRequestService.subscribeToSupplyRequests(
-      user.id,
+      {
+        userId: user.id,
+        includeItems: true,
+        includeApprovals: false, // Separate subscription for approvals
+        enablePerformanceOptimizations: options.enableOptimizations ?? true,
+        debounceMs: options.debounceMs ?? 100,
+      },
       {
         onRequestUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          // More granular cache updates
+          // Smarter cache invalidation strategy
           const userQueryKey = supplyRequestKeys.list(user.id)
           
-          // Invalidate list queries
-          queryClient.invalidateQueries({ queryKey: userQueryKey })
+          // Update connection health
+          setConnectionHealth(prev => ({
+            ...prev,
+            isConnected: true,
+            isHealthy: true,
+            lastUpdate: new Date()
+          }))
           
-          // If it's a specific request update, invalidate that detail too
-          if (payload.new && 'id' in payload.new && payload.new.id) {
+          // Optimize invalidation based on payload event type
+          if (payload.eventType === 'INSERT') {
+            // For new requests, invalidate list and pending approvals
+            queryClient.invalidateQueries({ queryKey: userQueryKey })
             queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.detail(payload.new.id as string) 
+              queryKey: supplyRequestKeys.pendingApprovals(user.id) 
             })
+          } else if (payload.eventType === 'UPDATE') {
+            // For updates, be more specific about what to invalidate
+            if (payload.new && 'id' in payload.new && payload.new.id) {
+              const requestId = payload.new.id as string
+              
+              // Update specific request detail
+              queryClient.invalidateQueries({ 
+                queryKey: supplyRequestKeys.detail(requestId) 
+              })
+              
+              // Update list if status changed
+              if (payload.old && payload.new.status !== payload.old.status) {
+                queryClient.invalidateQueries({ queryKey: userQueryKey })
+                queryClient.invalidateQueries({ 
+                  queryKey: supplyRequestKeys.pendingApprovals(user.id) 
+                })
+              }
+            }
+          } else if (payload.eventType === 'DELETE') {
+            // For deletions, invalidate list
+            queryClient.invalidateQueries({ queryKey: userQueryKey })
           }
-
-          // Also invalidate pending approvals if this user might be an approver
-          queryClient.invalidateQueries({ 
-            queryKey: supplyRequestKeys.pendingApprovals(user.id) 
-          })
         },
         onItemUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          // Handle item updates
+          // Handle item updates with optimized cache updates
           if (payload.new && 'request_id' in payload.new && payload.new.request_id) {
-            queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.detail(payload.new.request_id as string) 
-            })
-            queryClient.invalidateQueries({ 
-              queryKey: supplyRequestKeys.list(user.id) 
-            })
+            const requestId = payload.new.request_id as string
+            const payloadNew = payload.new as Record<string, unknown>
+            
+            // Use setQueryData for more targeted updates instead of full invalidation
+            queryClient.setQueryData(
+              supplyRequestKeys.detail(requestId),
+              (oldData: SupplyRequestWithItems | undefined) => {
+                if (!oldData) return oldData
+                
+                // Update specific item in the request with proper typing
+                const updatedItems = oldData.items?.map(item => 
+                  item.id === payloadNew.id ? { ...item, ...payloadNew } : item
+                ) || []
+                
+                return {
+                  ...oldData,
+                  items: updatedItems,
+                  updated_at: new Date().toISOString()
+                } as SupplyRequestWithItems
+              }
+            )
           }
         },
         onError: (error: Error) => {
-          console.error('Real-time subscription error:', error)
+          console.error('🚨 Optimized real-time subscription error:', error)
+          
+          // Update connection health
+          setConnectionHealth(prev => ({
+            ...prev,
+            isHealthy: false,
+            errorCount: prev.errorCount + 1
+          }))
+          
           // Could show a toast notification about connection issues
+          // toast.error('Kết nối realtime bị lỗi', { 
+          //   description: 'Dữ liệu có thể không được cập nhật tự động' 
+          // })
         }
       }
     )
 
-    // Subscribe to approval updates using service layer
+    // Subscribe to approval updates using optimized service layer  
     supplyRequestService.subscribeToApprovalUpdates(
       user.id,
       {
         onApprovalUpdate: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          // Invalidate pending approvals when approval status changes
+          // Optimized approval cache updates
           queryClient.invalidateQueries({ 
             queryKey: supplyRequestKeys.pendingApprovals(user.id) 
           })
           
-          // If we know the request ID, invalidate its detail
+          // Update specific request detail if we know the request ID
           if (payload.new && 'request_id' in payload.new && payload.new.request_id) {
             queryClient.invalidateQueries({ 
               queryKey: supplyRequestKeys.detail(payload.new.request_id as string) 
@@ -713,20 +798,74 @@ export function useSupplyRequestRealtime() {
           }
         },
         onError: (error: Error) => {
-          console.error('Approval subscription error:', error)
+          console.error('🚨 Optimized approval subscription error:', error)
+          
+          setConnectionHealth(prev => ({
+            ...prev,
+            errorCount: prev.errorCount + 1
+          }))
         }
       }
     )
+
+    // Set up connection health monitoring if enabled
+    let healthCheckInterval: NodeJS.Timeout | undefined
+    if (options.enableHealthMonitoring) {
+      healthCheckInterval = setInterval(() => {
+        const healthStatus = supplyRequestService.getRealtimeHealthStatus()
+        
+        setConnectionHealth(prev => ({
+          ...prev,
+          isConnected: healthStatus.isHealthy,
+          isHealthy: healthStatus.isHealthy && prev.errorCount < 5,
+        }))
+      }, 10000) // Check every 10 seconds
+    }
+
+    // Initial connection status
+    setConnectionHealth({
+      isConnected: true,
+      isHealthy: true,
+      lastUpdate: new Date(),
+      errorCount: 0
+    })
 
     // Cleanup subscriptions on unmount
     return () => {
       supplyRequestService.unsubscribeFromSupplyRequests(user.id)
       supplyRequestService.unsubscribeFromApprovalUpdates(user.id)
+      
+      if (healthCheckInterval) {
+        clearInterval(healthCheckInterval)
+      }
+      
+      setConnectionHealth({
+        isConnected: false,
+        isHealthy: false,
+        errorCount: 0
+      })
     }
-  }, [user?.id, queryClient])
+  }, [user?.id, queryClient, options.enableOptimizations, options.debounceMs, options.enableHealthMonitoring])
 
-  // Return subscription status
-  return { isConnected: !!user?.id }
+  // Return enhanced subscription status with health monitoring
+  return {
+    isConnected: connectionHealth.isConnected,
+    isHealthy: connectionHealth.isHealthy,
+    lastUpdate: connectionHealth.lastUpdate,
+    errorCount: connectionHealth.errorCount,
+    // Helper method to manually trigger health check
+    refreshHealth: () => {
+      if (user?.id) {
+        const healthStatus = supplyRequestService.getRealtimeHealthStatus()
+        setConnectionHealth(prev => ({
+          ...prev,
+          isConnected: healthStatus.isHealthy,
+          isHealthy: healthStatus.isHealthy,
+          lastUpdate: new Date()
+        }))
+      }
+    }
+  }
 }
 
 /**

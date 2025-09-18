@@ -210,7 +210,14 @@ class SupplyRequestService extends BaseService {
    * Subscribe to real-time updates for supply requests - Optimized with RealtimeManager
    */
   subscribeToSupplyRequests(
-    userId: string,
+    options: {
+      userId: string
+      includeItems?: boolean
+      includeApprovals?: boolean
+      onlyOwnRequests?: boolean
+      enablePerformanceOptimizations?: boolean
+      debounceMs?: number
+    },
     callbacks: {
       onRequestUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
       onItemUpdate?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void
@@ -219,10 +226,12 @@ class SupplyRequestService extends BaseService {
   ): RealtimeChannel {
     return realtimeManager.subscribeToSupplyRequests(
       {
-        userId,
-        includeItems: true,
-        includeApprovals: false,
-        onlyOwnRequests: true
+        userId: options.userId,
+        includeItems: options.includeItems ?? true,
+        includeApprovals: options.includeApprovals ?? false,
+        onlyOwnRequests: options.onlyOwnRequests ?? false,
+        enablePerformanceOptimizations: options.enablePerformanceOptimizations ?? true,
+        debounceMs: options.debounceMs ?? 100
       },
       {
         onRequestUpdate: callbacks.onRequestUpdate,

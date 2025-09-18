@@ -30,7 +30,7 @@ import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { toast } from "sonner"
 import type { SupplyRequestWithItems } from "@/types/database"
-import { usePendingApprovalRequests, useProcessApproval, useUpdateSupplyRequestItem } from "@/hooks/use-supply-requests"
+import { usePendingApprovalRequests, useProcessApproval, useUpdateSupplyRequestItem, useSupplyRequestRealtime } from "@/hooks/use-supply-requests"
 
 export default function ApproveSupplyRequestsPage() {
   const router = useRouter()
@@ -38,6 +38,13 @@ export default function ApproveSupplyRequestsPage() {
   const { data: pending = [], isLoading, isRefetching, error, refetch } = usePendingApprovalRequests()
   const processApproval = useProcessApproval()
   const updateItem = useUpdateSupplyRequestItem()
+  
+  // 🚀 OPTIMIZED REALTIME - Tự động cập nhật khi có thay đổi từ database
+  const realtimeStatus = useSupplyRequestRealtime({
+    enableOptimizations: true,
+    debounceMs: 150, // Tối ưu cho trang approval
+    enableHealthMonitoring: true
+  })
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogAction, setDialogAction] = useState<"approve" | "reject">("approve")
@@ -123,7 +130,30 @@ export default function ApproveSupplyRequestsPage() {
           <div className="flex items-center gap-2">
             <Badge variant="outline">{pending.length} yêu cầu</Badge>
             <Badge variant="outline">{totalItems} vật tư</Badge>
-            <Button onClick={() => refetch()} variant="outline" disabled={isRefetching || isLoading}>
+            
+            {/* 🚀 REALTIME CONNECTION STATUS */}
+            <Badge 
+              variant={realtimeStatus.isHealthy ? "default" : "secondary"}
+              className={`transition-colors ${realtimeStatus.isHealthy ? 'bg-green-500 hover:bg-green-600' : 'bg-yellow-500 hover:bg-yellow-600'}`}
+            >
+              {realtimeStatus.isConnected ? (
+                <span className="flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${realtimeStatus.isHealthy ? 'bg-green-200 animate-pulse' : 'bg-yellow-200'}`} />
+                  {realtimeStatus.isHealthy ? 'Realtime' : 'Lỗi kết nối'}
+                </span>
+              ) : (
+                'Offline'
+              )}
+            </Badge>
+            
+            <Button 
+              onClick={() => {
+                refetch()
+                realtimeStatus.refreshHealth()
+              }} 
+              variant="outline" 
+              disabled={isRefetching || isLoading}
+            >
               {isRefetching || isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
