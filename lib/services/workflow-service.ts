@@ -175,18 +175,20 @@ export class WorkflowService extends BaseService {
 
   /**
    * Check if user can approve at a specific step
+   * If step has approver_employee_id, only that user can approve
+   * If step has no approver_employee_id, fall back to role-based approval
    */
   async canUserApproveStep(stepId: string, userId: string): Promise<boolean> {
     try {
       const step = await this.getApprovalStepById(stepId)
       if (!step) return false
 
-      // Check if user is specifically assigned to this step
-      if (step.approver_employee_id === userId) {
-        return true
+      // If step has a specific approver assigned, only that user can approve
+      if (step.approver_employee_id !== null) {
+        return step.approver_employee_id === userId
       }
 
-      // Check if user's role matches the step's required role
+      // If no specific approver, check if user's role matches the step's required role
       if (step.approver_role_id) {
         const userRoleId = await this.getCurrentUserRoleId()
         return userRoleId === step.approver_role_id
@@ -215,7 +217,8 @@ export class WorkflowService extends BaseService {
           )
         `)
         .eq('is_active', true)
-        .or(`approval_steps.approver_employee_id.eq.${currentUserId},approval_steps.approver_role_id.eq.${userRoleId}`)
+        .or(`and(approver_employee_id.eq.${currentUserId}),and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`, 
+            { referencedTable: 'approval_steps' })
 
       if (error) throw error
       return data || []

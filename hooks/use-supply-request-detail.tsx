@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { SupplyRequestWithItems } from '@/types/database'
 import { supplyRequestService } from '@/lib/services/supply-request-service'
+import { approvalService } from '@/lib/services/approval-service'
 import { supplyRequestKeys } from './use-supply-requests'
 import { toast } from 'sonner'
 import { useAuth } from './use-auth'
@@ -33,6 +34,19 @@ export function useSupplyRequestDetail(requestId: string) {
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+  })
+
+  // Query for approval permission check
+  const approvalPermissionQuery = useQuery({
+    queryKey: ['approval-permission', requestId, user?.id],
+    queryFn: async () => {
+      if (!requestId || !user?.id) return false
+      return await approvalService.canUserApproveRequest(requestId, user.id)
+    },
+    enabled: !!requestId && !!user?.id && detailQuery.data?.status === 'pending',
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
   })
 
   // Mutation for updating request items (inline editing)
@@ -188,19 +202,25 @@ export function useSupplyRequestDetail(requestId: string) {
     }
   })
 
+  const computedCanApprove = (
+    detailQuery.data?.status === 'pending' && 
+    user?.id !== detailQuery.data?.requester_id &&
+    approvalPermissionQuery.data === true
+  )
+
   return {
     // Data
     request: detailQuery.data,
     
     // Loading states
-    isLoading: detailQuery.isLoading,
+    isLoading: detailQuery.isLoading || approvalPermissionQuery.isLoading,
     isFetching: detailQuery.isFetching,
     isRefetching: detailQuery.isRefetching,
     isUpdatingItem: updateItemMutation.isPending,
     isProcessingApproval: processApprovalMutation.isPending,
     
     // Error states
-    error: detailQuery.error,
+    error: detailQuery.error || approvalPermissionQuery.error,
     
     // Actions
     refetch: detailQuery.refetch,
@@ -209,7 +229,7 @@ export function useSupplyRequestDetail(requestId: string) {
     
     // Helper computed properties
     canEdit: detailQuery.data?.status === 'pending' && user?.id === detailQuery.data?.requester_id,
-    canApprove: detailQuery.data?.status === 'pending' && user?.id !== detailQuery.data?.requester_id,
+    canApprove: computedCanApprove,
     isOwnRequest: user?.id === detailQuery.data?.requester_id,
     
     // Query key for external cache management

@@ -46,14 +46,20 @@ export class ApprovalService extends BaseService {
         // Show requests awaiting first approval (pending) and those mid-workflow (in_progress)
         .in('status', ['pending', 'in_progress'])
         .not('current_step_id', 'is', null)
-        // Approver can be explicitly assigned or via role.
-        // Guard against null/undefined role to avoid generating invalid eq.null
-        // and scope OR to the joined approval_steps table to avoid PostgREST parse issues.
-        .or(
-          `approver_employee_id.eq.${user.id}` + (userRoleId ? `,approver_role_id.eq.${userRoleId}` : ''),
+        .order('created_at', { ascending: false })
+
+      // Apply approval visibility logic:
+      // If step has approver_employee_id, only that specific user can see the request
+      // If step has no approver_employee_id (null), fall back to role-based approval
+      if (userRoleId) {
+        query = query.or(
+          `and(approver_employee_id.eq.${user.id}),and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
           { referencedTable: 'approval_steps' }
         )
-        .order('created_at', { ascending: false })
+      } else {
+        // User has no role, can only see requests explicitly assigned to them
+        query = query.eq('approval_steps.approver_employee_id', user.id)
+      }
 
       // Apply optional filters by request type
       if (options.requestTypeId) {
@@ -131,7 +137,29 @@ export class ApprovalService extends BaseService {
         throw new Error('User is not authorized to approve this step')
       }
 
-      // Create approval record
+      // Check if approval already exists for this request and step
+      const { data: existingApproval, error: checkError } = await this.supabase
+        .from('request_approvals')
+        .select('id, status')
+        .eq('request_id', requestId)
+        .eq('step_id', request.current_step_id)
+        .single()
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected if no approval exists
+        throw checkError
+      }
+
+      if (existingApproval) {
+        // Approval already exists, return the current status
+        return {
+          success: true,
+          newStatus: request.status,
+          message: `Request has already been ${existingApproval.status}`
+        }
+      }
+
+      // Create approval record (only if it doesn't exist)
       const { error: approvalError } = await this.supabase
         .from('request_approvals')
         .insert({
@@ -298,11 +326,17 @@ export class ApprovalService extends BaseService {
         // Count both 'pending' (first step) and 'in_progress' (subsequent steps)
         .in('status', ['pending', 'in_progress'])
         .not('current_step_id', 'is', null)
-        // Apply OR on the joined approval_steps table; skip role condition if not available
-        .or(
-          `approver_employee_id.eq.${currentUserId}` + (userRoleId ? `,approver_role_id.eq.${userRoleId}` : ''),
+
+      // Apply same approval visibility logic as getPendingApprovalRequests
+      if (userRoleId) {
+        query = query.or(
+          `and(approver_employee_id.eq.${currentUserId}),and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
           { referencedTable: 'approval_steps' }
         )
+      } else {
+        // User has no role, can only see requests explicitly assigned to them
+        query = query.eq('approval_steps.approver_employee_id', currentUserId)
+      }
 
       if (options.requestTypeId) {
         const ids = Array.isArray(options.requestTypeId) ? options.requestTypeId : [options.requestTypeId]

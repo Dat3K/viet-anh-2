@@ -122,7 +122,8 @@ export function RequestDetail({
 
   // Determine effective permissions based on mode and request state
   const effectiveCanEdit = (mode === 'edit' || mode === 'full') && (allowItemEditing || canEdit)
-  const effectiveShowActions = (mode === 'approve' || mode === 'full') && (showActions || canApprove) && 
+  // ONLY show actions if user actually can approve - ignore showActions prop for security
+  const effectiveShowActions = (mode === 'approve' || mode === 'full') && canApprove && 
     // Hide approval actions if request is already approved, rejected, or cancelled
     request?.status !== 'approved' && request?.status !== 'rejected' && request?.status !== 'cancelled'
   
