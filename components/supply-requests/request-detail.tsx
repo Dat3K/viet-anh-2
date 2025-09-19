@@ -116,12 +116,15 @@ export function RequestDetail({
   // Local state for approval
   const [approvalComments, setApprovalComments] = useState('')
   const [showApprovalDialog, setShowApprovalDialog] = useState<'approve' | 'reject' | null>(null)
+  
+  // Local state for copy functionality  
+  const [isCopying, setIsCopying] = useState(false)
 
   // Determine effective permissions based on mode and request state
   const effectiveCanEdit = (mode === 'edit' || mode === 'full') && (allowItemEditing || canEdit)
   const effectiveShowActions = (mode === 'approve' || mode === 'full') && (showActions || canApprove) && 
-    // Hide approval actions if request is already approved or rejected
-    request?.status !== 'approved' && request?.status !== 'rejected'
+    // Hide approval actions if request is already approved, rejected, or cancelled
+    request?.status !== 'approved' && request?.status !== 'rejected' && request?.status !== 'cancelled'
   
   // Show copy feature for cancelled requests
   const showCopyFeature = request?.status === 'cancelled'
@@ -180,34 +183,89 @@ export function RequestDetail({
     }
   }
 
-  const handleCreateCopy = () => {
-    if (!request) return
-
-    // Prepare data to pass to create page
-    const payload = request.payload as { purpose?: string; requestedDate?: string } | null
-    const copyData = {
-      title: `[Bản sao] ${request.title}`,
-      purpose: payload?.purpose || '',
-      requestedDate: new Date().toISOString().split('T')[0], // Today's date
-      priority: request.priority,
-      items: request.items?.map(item => ({
-        name: item.name,
-        quantity: item.quantity || 0,
-        unit: item.unit || '',
-        notes: item.notes || ''
-      })) || []
+  const handleCreateCopy = async () => {
+    if (!request) {
+      toast.error('Không thể sao chép yêu cầu', {
+        description: 'Không tìm thấy thông tin yêu cầu',
+        duration: 4000,
+      })
+      return
     }
 
-    // Store data in sessionStorage to pass to create page
-    sessionStorage.setItem('copyRequestData', JSON.stringify(copyData))
-    
-    // Navigate to create page
-    router.push('/supply-requests/create?copy=true')
-    
-    toast.success('Đã sao chép thông tin yêu cầu', {
-      description: 'Bạn sẽ được chuyển đến trang tạo yêu cầu mới',
-      duration: 4000,
-    })
+    setIsCopying(true)
+
+    try {
+      // Validate essential data
+      if (!request.title || !request.items || request.items.length === 0) {
+        toast.error('Không thể sao chép yêu cầu', {
+          description: 'Yêu cầu thiếu thông tin cần thiết',
+          duration: 4000,
+        })
+        setIsCopying(false)
+        return
+      }
+
+      // Prepare data to pass to create page
+      const payload = request.payload as { purpose?: string; requestedDate?: string } | null
+      const copyData = {
+        title: `[Bản sao] ${request.title}`,
+        purpose: payload?.purpose || '',
+        requestedDate: new Date().toISOString().split('T')[0], // Today's date
+        priority: request.priority || 'medium',
+        items: request.items.map(item => ({
+          name: item.name || 'Vật tư không tên',
+          quantity: Math.max(item.quantity || 1, 1), // Ensure at least 1
+          unit: item.unit || 'cái',
+          notes: item.notes || ''
+        }))
+      }
+
+      // Validate copy data
+      if (copyData.items.length === 0) {
+        toast.error('Không thể sao chép yêu cầu', {
+          description: 'Không có vật tư nào để sao chép',
+          duration: 4000,
+        })
+        setIsCopying(false)
+        return
+      }
+
+      // Try to store in both sessionStorage and localStorage for reliability
+      const dataString = JSON.stringify(copyData)
+      
+      try {
+        sessionStorage.setItem('copyRequestData', dataString)
+        localStorage.setItem('copyRequestData', dataString)
+      } catch (storageError) {
+        console.error('Storage error:', storageError)
+        toast.error('Không thể lưu dữ liệu tạm', {
+          description: 'Vui lòng thử lại',
+          duration: 4000,
+        })
+        setIsCopying(false)
+        return
+      }
+      
+      // Show success toast before navigation
+      toast.success('Đã sao chép thông tin yêu cầu', {
+        description: `${copyData.items.length} vật tư sẽ được sao chép`,
+        duration: 3000,
+      })
+
+      // Navigate to create page with slight delay to ensure toast shows
+      setTimeout(() => {
+        router.push('/supply-requests/create?copy=true&source=' + request.id)
+        setIsCopying(false)
+      }, 100)
+
+    } catch (error) {
+      console.error('Copy request error:', error)
+      toast.error('Có lỗi xảy ra khi sao chép', {
+        description: error instanceof Error ? error.message : 'Vui lòng thử lại',
+        duration: 5000,
+      })
+      setIsCopying(false)
+    }
   }
 
   // Loading state
@@ -402,11 +460,21 @@ export function RequestDetail({
               
               <Button
                 onClick={handleCreateCopy}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                disabled={isCopying}
+                className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
               >
-                <Copy className="h-4 w-4 mr-2" />
-                Tạo bản sao
-                <ArrowRight className="h-4 w-4 ml-2" />
+                {isCopying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang sao chép...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Tạo bản sao
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>

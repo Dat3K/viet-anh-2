@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AppLayout } from '@/components/layout/app-layout'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,14 +26,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormSection } from '@/components/form/form-section'
 import { ProfileInfoCard } from '@/components/profile/profile-info-card'
 import { SupplyItemCard } from '@/components/supply-request/supply-item-card'
-import { ActionButtons } from '@/components/form/action-buttons'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
   Plus,
   Package,
   FileText,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Copy,
+  Send,
+  RotateCcw
 } from 'lucide-react'
 import {
   createSupplyRequestSchema,
@@ -50,9 +52,14 @@ export default function CreateSupplyRequestPage() {
   const [showOptimisticFeedback, setShowOptimisticFeedback] = useState(false)
   const addButtonRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { profile, isLoading: profileLoading } = useUserProfile()
   const createSupplyRequestMutation = useCreateSupplyRequest()
+
+  // Check if this is a copy operation
+  const isCopyOperation = searchParams.get('copy') === 'true'
+  const sourceRequestId = searchParams.get('source')
 
 
   // Helper function để tạo date string từ Date object
@@ -86,6 +93,68 @@ export default function CreateSupplyRequestPage() {
     control: form.control,
     name: 'items'
   })
+
+  // Handle copy data loading
+  useEffect(() => {
+    if (isCopyOperation) {
+      try {
+        // Try to get data from sessionStorage first, then localStorage
+        let copyDataString = sessionStorage.getItem('copyRequestData')
+        if (!copyDataString) {
+          copyDataString = localStorage.getItem('copyRequestData')
+        }
+
+        if (copyDataString) {
+          const copyData = JSON.parse(copyDataString)
+          console.log('Loading copy data:', copyData)
+
+          // Populate form with copy data
+          form.reset({
+            title: copyData.title || 'Yêu cầu vật tư',
+            purpose: copyData.purpose || '',
+            requestedDate: copyData.requestedDate || getDateString(new Date()),
+            priority: copyData.priority || 'medium',
+            requestType: 'supply_request',
+            items: copyData.items && copyData.items.length > 0 ? copyData.items : [{
+              name: '',
+              quantity: 1,
+              unit: '',
+              notes: ''
+            }]
+          })
+
+          // Clean up storage after loading
+          sessionStorage.removeItem('copyRequestData')
+          localStorage.removeItem('copyRequestData')
+
+          // Show success message
+          toast.success('Đã tải dữ liệu bản sao', {
+            description: `${copyData.items?.length || 0} vật tư đã được sao chép`,
+            duration: 4000,
+          })
+
+          // Expand all items to show copied data
+          const expandedItems: Record<string, boolean> = {}
+          copyData.items?.forEach((_: any, index: number) => {
+            expandedItems[index.toString()] = true
+          })
+          setOpenItems(expandedItems)
+
+        } else {
+          toast.warning('Không tìm thấy dữ liệu sao chép', {
+            description: 'Có thể dữ liệu đã hết hạn hoặc bị xóa',
+            duration: 4000,
+          })
+        }
+      } catch (error) {
+        console.error('Error loading copy data:', error)
+        toast.error('Lỗi khi tải dữ liệu sao chép', {
+          description: 'Vui lòng thử tạo bản sao lại',
+          duration: 5000,
+        })
+      }
+    }
+  }, [isCopyOperation, sourceRequestId, form])
 
   const onSubmit = async (data: CreateSupplyRequestData) => {
     try {
@@ -190,6 +259,32 @@ export default function CreateSupplyRequestPage() {
     form.handleSubmit(onSubmit)()
   }
 
+  const handleReset = () => {
+    // Reset form to default values
+    form.reset({
+      title: 'Yêu cầu vật tư',
+      purpose: '',
+      requestedDate: getDateString(new Date()),
+      priority: 'medium',
+      requestType: 'supply_request',
+      items: [{
+        name: '',
+        quantity: 1,
+        unit: '',
+        notes: ''
+      }]
+    })
+
+    // Clear opened items state
+    setOpenItems({})
+
+    // Show confirmation toast
+    toast.success('Đã reset form', {
+      description: 'Tất cả dữ liệu đã được xóa và reset về mặc định',
+      duration: 3000,
+    })
+  }
+
 
 
   const toggleItem = (itemId: string) => {
@@ -286,24 +381,46 @@ export default function CreateSupplyRequestPage() {
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Tạo yêu cầu vật tư mới</h1>
+              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                {isCopyOperation ? <Copy className="h-8 w-8 text-orange-600" /> : <FileText className="h-8 w-8" />}
+                {isCopyOperation ? 'Tạo bản sao yêu cầu vật tư' : 'Tạo yêu cầu vật tư mới'}
+              </h1>
               <p className="text-muted-foreground">
-                Điền thông tin chi tiết để tạo yêu cầu vật tư và thiết bị giảng dạy
+                {isCopyOperation 
+                  ? `Tạo yêu cầu mới từ bản sao${sourceRequestId ? ` (từ ${sourceRequestId.slice(0, 8)}...)` : ''}`
+                  : 'Điền thông tin chi tiết để tạo yêu cầu vật tư và thiết bị giảng dạy'
+                }
               </p>
             </div>
             
-            {/* Dev-only Quick Fill Button */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              {/* Reset Button */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={quickFillForm}
-                className="shrink-0 bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/20 dark:border-yellow-800 dark:text-yellow-300"
+                onClick={handleReset}
+                disabled={createSupplyRequestMutation.isPending || showOptimisticFeedback}
+                className="shrink-0 flex items-center gap-2"
               >
-                🚀 Điền nhanh (Dev)
+                <RotateCcw className="h-4 w-4" />
+                Reset
               </Button>
-            )}
+              
+              {/* Dev-only Quick Fill Button */}
+              {process.env.NODE_ENV === 'development' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={quickFillForm}
+                  className="shrink-0 bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-950/20 dark:border-yellow-800 dark:text-yellow-300"
+                >
+                  🚀 Điền nhanh (Dev)
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Enhanced loading and status feedback */}
@@ -495,11 +612,18 @@ export default function CreateSupplyRequestPage() {
               </div>
             </FormSection>
 
-            <ActionButtons
-              isSubmitting={createSupplyRequestMutation.isPending || showOptimisticFeedback}
-              onSubmit={handleSubmit}
-              disabled={profileLoading || !profile}
-            />
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={createSupplyRequestMutation.isPending || showOptimisticFeedback || profileLoading || !profile}
+                className="flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {createSupplyRequestMutation.isPending || showOptimisticFeedback ? 'Đang gửi...' : 'Gửi yêu cầu'}
+              </Button>
+            </div>
 
             {/* Form validation summary */}
             {form.formState.errors && Object.keys(form.formState.errors).length > 0 && (
