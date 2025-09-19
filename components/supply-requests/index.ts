@@ -3,6 +3,8 @@ export { StatsCards, CompactStatsCards } from './stats-cards'
 export { FiltersSection, CompactFiltersSection } from './filters-section'
 export { RequestsTable, SimpleRequestsTable } from './requests-table'
 export { EmptyState } from './empty-state'
+export { RequestDetail } from './request-detail'
+export { RequestDetailModal } from './request-detail-modal'
 
 // Re-export badge components for convenience
 export { StatusBadge, statusConfig, getStatusConfig, getStatusOptions } from '../ui/status-badge'
