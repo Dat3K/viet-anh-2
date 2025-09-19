@@ -188,3 +188,87 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+@layer utilities {
+  /* Mobile-first touch targets - ensure minimum 44px touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile-friendly text sizing - prevents zoom on iOS */
+  .mobile-text {
+    @apply text-base; /* 16px+ prevents zoom */
+  }
+  
+  /* Safe area padding for mobile devices */
+  .safe-area-padding {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-padding-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Mobile scrollable containers */
+  .mobile-scroll {
+    @apply overflow-auto overscroll-contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbars on mobile */
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Better mobile button spacing */
+  .mobile-button-group {
+    @apply gap-3; /* Minimum 12px between touch targets */
+  }
+  
+  /* Mobile card layouts */
+  .mobile-card {
+    @apply border-0 shadow-sm;
+  }
+  
+  /* Responsive grid that collapses to single column on mobile */
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+  
+  /* Mobile-friendly form layouts */
+  .mobile-form {
+    @apply space-y-4;
+  }
+  
+  .mobile-form-group {
+    @apply space-y-2;
+  }
+  
+  /* Smooth transitions for responsive components */
+  .mobile-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  /* Line clamping for mobile text */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}

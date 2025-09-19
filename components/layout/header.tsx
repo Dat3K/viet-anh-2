@@ -62,38 +62,44 @@ export function Header() {
   const breadcrumbs = generateBreadcrumbs(pathname)
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-2 h-4" />
+    <header className="sticky top-0 z-50 flex h-14 sm:h-16 shrink-0 items-center gap-1 sm:gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-2 sm:px-4">
+      <SidebarTrigger className="h-8 w-8 sm:h-10 sm:w-10 -ml-1" />
+      <Separator orientation="vertical" className="mr-1 sm:mr-2 h-4" />
       
-      {/* Breadcrumbs */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.href} className="flex items-center">
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {crumb.isCurrentPage ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink href={crumb.href}>
-                    {crumb.label}
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </div>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      {/* Breadcrumbs - responsive */}
+      <div className="flex-1 min-w-0">
+        <Breadcrumb className="overflow-hidden">
+          <BreadcrumbList>
+            {breadcrumbs.map((crumb, index) => (
+              <div key={crumb.href} className="flex items-center">
+                {index > 0 && <BreadcrumbSeparator className="hidden xs:block" />}
+                <BreadcrumbItem className={index === 0 ? "hidden sm:block" : ""}>
+                  {crumb.isCurrentPage ? (
+                    <BreadcrumbPage className="text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                      {crumb.label}
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink href={crumb.href} className="text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                      {crumb.label}
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </div>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
       
-      {/* Spacer */}
-      <div className="ml-auto" />
-      
-      {/* Theme Toggle */}
-      <ThemeToggle />
-      
-      {/* User Navigation */}
-      <UserNav />
+      {/* Actions - compact on mobile */}
+      <div className="flex items-center gap-1 sm:gap-2">
+        {/* Theme Toggle - hide on very small screens */}
+        <div className="hidden xs:block">
+          <ThemeToggle />
+        </div>
+        
+        {/* User Navigation */}
+        <UserNav />
+      </div>
     </header>
   )
 }

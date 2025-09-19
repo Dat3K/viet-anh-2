@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useBreakpoint } from "@/hooks/use-mobile"
 
 import {
   Sidebar,
@@ -58,13 +59,14 @@ const requestSubItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { isMobile } = useBreakpoint()
 
   const isRequestsActive = pathname.startsWith('/supply-requests')
   const isDashboardActive = pathname === '/dashboard'
   const isProfileActive = pathname === '/profile'
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"}>
       <SidebarHeader className="group-data-[collapsible=icon]:hidden">
         <div className="flex items-center gap-2 px-2 py-2">
           <Image 
@@ -154,7 +156,7 @@ export function AppSidebar() {
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
         <div className="px-2 py-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
-            <span> 2024 Trường Việt Anh</span>
+            <span>Hệ thống Trường Việt Anh</span>
           </div>
         </div>
       </SidebarFooter>
