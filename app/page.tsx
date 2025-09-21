@@ -1,227 +1,288 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { AppLayout } from '@/components/layout/app-layout'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, CheckCircle, Shield, BookOpen, FileText, Users, ClipboardCheck, School } from "lucide-react"
+import {
+  FileText,
+  Plus,
+  History,
+  CheckCircle,
+  ArrowRight,
+  Users,
+  Shield,
+  BookOpen,
+  School,
+  ClipboardCheck
+} from "lucide-react"
+import Link from 'next/link'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Home() {
+  const { user, isLoading: authLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login')
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <AppLayout>
+        <HomeSkeleton />
+      </AppLayout>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/50">
-      <div className="container mx-auto px-4 py-16">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <Badge variant="secondary" className="mb-4">
-            🏫 Trường Trung Tiểu Học Việt Anh
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Hệ Thống Quản Lý
-            <span className="text-primary block">Yêu Cầu Trường Học</span>
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Hệ thống quản lý yêu cầu hiện đại cho Trường Trung Tiểu Học Việt Anh.
-            Dành cho giáo viên, trưởng bộ môn và ban giám hiệu để quản lý quy trình
-            duyệt yêu cầu vật tư và tài liệu một cách hiệu quả.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild variant="outline" size="lg" className="text-lg px-8">
-              <Link href="#features">
-                Tìm Hiểu Thêm
-              </Link>
-            </Button>
-          </div>
-        </div>
-        
-        {/* Features Section */}
-        <div id="features" className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          <Card>
-            <CardHeader>
-              <FileText className="h-8 w-8 text-primary mb-2" />
-              <CardTitle>Quản Lý Yêu Cầu</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Tạo và quản lý các yêu cầu vật tư, thiết bị và tài liệu giảng dạy 
-                một cách dễ dàng và hiệu quả.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <ClipboardCheck className="h-8 w-8 text-primary mb-2" />
-              <CardTitle>Quy Trình Duyệt</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Quy trình duyệt tự động từ giáo viên, trưởng bộ môn đến 
-                ban giám hiệu với thông báo thời gian thực.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <Users className="h-8 w-8 text-primary mb-2" />
-              <CardTitle>Quản Lý Vai Trò</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Phân quyền rõ ràng cho giáo viên, trưởng bộ môn và ban giám hiệu 
-                để đảm bảo an toàn thông tin.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Features List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center mb-6">Tính Năng Chính</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              {[
-                'Tạo yêu cầu vật tư động',
-                'Giao diện thân thiện cho tất cả vai trò',
-                'Quy trình duyệt tự động theo cấp bậc',
-                'Thông báo thời gian thực',
-                'Giao diện thân thiện trên mọi thiết bị',
-                'Chế độ sáng/tối linh hoạt',
-                'Báo cáo thống kê chi tiết',
-                'Lịch sử thay đổi và kiểm soát',
-                'Phân quyền theo vai trò giảng dạy',
-                'Tích hợp với hệ thống trường học',
-                'Sao lưu và bảo mật dữ liệu',
-                'Hỗ trợ tiếng Việt hoàn chỉnh'
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                  <span className="text-sm">{feature}</span>
+    <AppLayout>
+      <HomeContent />
+    </AppLayout>
+  )
+}
+
+function HomeSkeleton() {
+  return (
+    <div suppressHydrationWarning className="space-y-6">
+      {/* Hero Section Skeleton */}
+      <div suppressHydrationWarning className="text-center space-y-4">
+        <Skeleton className="h-8 w-48 mx-auto" />
+        <Skeleton className="h-12 w-96 mx-auto" />
+        <Skeleton className="h-6 w-64 mx-auto" />
+      </div>
+
+      {/* Main Features Skeleton */}
+      <div suppressHydrationWarning>
+        <Skeleton className="h-6 w-48 mb-4" />
+        <div suppressHydrationWarning className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-lg" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-5 w-5" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Workflow Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Quy Trình Hoạt Động</h2>
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-4">
-              {/* Step 1 */}
-              <div className="text-center flex-1">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                  1
-                </div>
-                <h3 className="font-semibold mb-2">Tạo Yêu Cầu</h3>
-                <p className="text-sm text-muted-foreground">
-                  Giáo viên tạo yêu cầu vật tư giảng dạy cần thiết
-                </p>
-              </div>
-              
-              {/* Arrow 1 */}
-              <div className="hidden md:flex">
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
-              </div>
-              
-              {/* Step 2 */}
-              <div className="text-center flex-1">
-                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                  2
-                </div>
-                <h3 className="font-semibold mb-2">Duyệt Bộ Môn</h3>
-                <p className="text-sm text-muted-foreground">
-                  Trưởng bộ môn kiểm tra và duyệt yêu cầu
-                </p>
-              </div>
-              
-              {/* Arrow 2 */}
-              <div className="hidden md:flex">
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
-              </div>
-              
-              {/* Step 3 */}
-              <div className="text-center flex-1">
-                <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                  3
-                </div>
-                <h3 className="font-semibold mb-2">Phê Duyệt Cuối</h3>
-                <p className="text-sm text-muted-foreground">
-                  Ban giám hiệu phê duyệt cuối cùng
-                </p>
-              </div>
-              
-              {/* Arrow 3 */}
-              <div className="hidden md:flex">
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
-              </div>
-              
-              {/* Step 4 */}
-              <div className="text-center flex-1">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                  4
-                </div>
-                <h3 className="font-semibold mb-2">Hoàn Thành</h3>
-                <p className="text-sm text-muted-foreground">
-                  Yêu cầu được phê duyệt và thực hiện
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* User Roles Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Dành Cho Tất Cả Các Vai Trò</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="text-center">
-              <CardHeader>
-                <BookOpen className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                <CardTitle>Giáo Viên</CardTitle>
               </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-muted-foreground space-y-2 text-left">
-                  <li>• Tạo yêu cầu vật tư giảng dạy</li>
-                  <li>• Theo dõi tiến trình duyệt</li>
-                  <li>• Xem lịch sử yêu cầu của bản thân</li>
-                  <li>• Nhận thông báo cập nhật</li>
-                </ul>
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-20 rounded" />
+                </div>
               </CardContent>
             </Card>
-            
-            <Card className="text-center">
-              <CardHeader>
-                <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <CardTitle>Trưởng Bộ Môn</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-muted-foreground space-y-2 text-left">
-                  <li>• Duyệt yêu cầu của giáo viên</li>
-                  <li>• Chỉnh sửa danh sách vật tư</li>
-                  <li>• Quản lý bộ môn của mình</li>
-                  <li>• Theo dõi thống kê bộ môn</li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardHeader>
-                <School className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                <CardTitle>Ban Giám Hiệu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-muted-foreground space-y-2 text-left">
-                  <li>• Phê duyệt cuối cùng</li>
-                  <li>• Quản lý toàn bộ hệ thống</li>
-                  <li>• Xem báo cáo tổng thể</li>
-                  <li>• Cấu hình quy trình duyệt</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+          ))}
         </div>
       </div>
+
+      {/* System Info Skeleton */}
+      <div suppressHydrationWarning className="grid md:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="text-center">
+              <Skeleton className="h-12 w-12 mx-auto mb-4" />
+              <Skeleton className="h-6 w-32 mx-auto" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <Skeleton key={j} className="h-4 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function HomeContent() {
+  const mainFeatures = [
+    {
+      title: "Tạo yêu cầu vật tư",
+      description: "Tạo yêu cầu mới cho vật tư và thiết bị giảng dạy",
+      icon: Plus,
+      href: "/supply-requests/create",
+      color: "bg-blue-500"
+    },
+    {
+      title: "Lịch sử yêu cầu",
+      description: "Xem và quản lý tất cả yêu cầu đã tạo",
+      icon: History,
+      href: "/supply-requests/history",
+      color: "bg-green-500"
+    },
+    {
+      title: "Phê duyệt yêu cầu",
+      description: "Duyệt các yêu cầu từ giáo viên khác",
+      icon: CheckCircle,
+      href: "/supply-requests/approve",
+      color: "bg-purple-500"
+    },
+    {
+      title: "Danh sách yêu cầu",
+      description: "Xem tất cả yêu cầu trong hệ thống",
+      icon: FileText,
+      href: "/supply-requests",
+      color: "bg-orange-500"
+    }
+  ]
+
+  const userRoles = [
+    {
+      title: "Giáo Viên",
+      icon: BookOpen,
+      color: "text-blue-500",
+      description: "Tạo và theo dõi yêu cầu vật tư giảng dạy",
+      features: [
+        "Tạo yêu cầu vật tư giảng dạy",
+        "Theo dõi tiến trình duyệt",
+        "Xem lịch sử yêu cầu của bản thân",
+        "Nhận thông báo cập nhật"
+      ]
+    },
+    {
+      title: "Trưởng Bộ Môn",
+      icon: Shield,
+      color: "text-green-500",
+      description: "Duyệt và quản lý yêu cầu trong bộ môn",
+      features: [
+        "Duyệt yêu cầu của giáo viên",
+        "Chỉnh sửa danh sách vật tư",
+        "Quản lý bộ môn của mình",
+        "Theo dõi thống kê bộ môn"
+      ]
+    },
+    {
+      title: "Ban Giám Hiệu",
+      icon: School,
+      color: "text-purple-500",
+      description: "Quản lý toàn bộ hệ thống",
+      features: [
+        "Phê duyệt cuối cùng",
+        "Quản lý toàn bộ hệ thống",
+        "Xem báo cáo tổng thể",
+        "Cấu hình quy trình duyệt"
+      ]
+    }
+  ]
+
+  return (
+    <div suppressHydrationWarning className="space-y-8">
+      {/* Hero Section */}
+      <div suppressHydrationWarning className="text-center space-y-4">
+        <Badge variant="secondary" className="mb-4">
+          🏫 Trường Trung Tiểu Học Việt Anh
+        </Badge>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Hệ Thống Quản Lý
+          <span className="text-primary block">Yêu Cầu Trường Học</span>
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          Hệ thống quản lý yêu cầu hiện đại. Dành cho giáo viên, trưởng bộ môn và ban giám hiệu
+          để quản lý quy trình duyệt yêu cầu vật tư và tài liệu một cách hiệu quả.
+        </p>
+      </div>
+
+      {/* Main Features */}
+      <div suppressHydrationWarning>
+        <h2 className="text-2xl font-semibold mb-6">Chức Năng Hệ Thống</h2>
+        <div suppressHydrationWarning className="grid gap-4 md:grid-cols-2">
+          {mainFeatures.map((feature) => (
+            <Card key={feature.title} className="hover:shadow-lg transition-all duration-200 cursor-pointer group">
+              <Link href={feature.href}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-3 rounded-lg ${feature.color}`}>
+                        <feature.icon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{feature.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+                  </div>
+                </CardHeader>
+              </Link>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* User Roles */}
+      <div suppressHydrationWarning>
+        <h2 className="text-2xl font-semibold mb-6">Dành Cho Tất Cả Các Vai Trò</h2>
+        <div suppressHydrationWarning className="grid md:grid-cols-3 gap-6">
+          {userRoles.map((role) => (
+            <Card key={role.title} className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <role.icon className={`h-12 w-12 mx-auto mb-4 ${role.color}`} />
+                <CardTitle>{role.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">{role.description}</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-muted-foreground space-y-2 text-left">
+                  {role.features.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* System Features */}
+      <Card suppressHydrationWarning>
+        <CardHeader suppressHydrationWarning>
+          <CardTitle className="text-center mb-6">Tính Năng Chính</CardTitle>
+        </CardHeader>
+        <CardContent suppressHydrationWarning>
+          <div suppressHydrationWarning className="grid md:grid-cols-2 gap-4">
+            {[
+              'Tạo yêu cầu vật tư động',
+              'Giao diện thân thiện cho tất cả vai trò',
+              'Quy trình duyệt tự động theo cấp bậc',
+              'Thông báo thời gian thực',
+              'Giao diện thân thiện trên mọi thiết bị',
+              'Chế độ sáng/tối linh hoạt',
+              'Báo cáo thống kê chi tiết',
+              'Lịch sử thay đổi và kiểm soát',
+              'Phân quyền theo vai trò giảng dạy',
+              'Tích hợp với hệ thống trường học',
+              'Sao lưu và bảo mật dữ liệu',
+              'Hỗ trợ tiếng Việt hoàn chỉnh'
+            ].map((feature, index) => (
+              <div key={index} suppressHydrationWarning className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                <span className="text-sm">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
