@@ -29,8 +29,15 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Image from "next/image"
 
 // Supply request sub-items
@@ -60,10 +67,12 @@ const requestSubItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { isMobile } = useBreakpoint()
+  const { state } = useSidebar()
 
   const isRequestsActive = pathname.startsWith('/supply-requests')
   const isDashboardActive = pathname === '/dashboard'
   const isProfileActive = pathname === '/profile'
+  const isCollapsed = state === 'collapsed'
 
   return (
     <Sidebar collapsible={isMobile ? "offcanvas" : "icon"}>
@@ -116,38 +125,72 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* Supply Requests Dropdown */}
-              <Collapsible defaultOpen={isRequestsActive} className="group/collapsible">
+              {/* Supply Requests - Dropdown when collapsed, Collapsible when expanded */}
+              {isCollapsed ? (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
-                      isActive={isRequestsActive}
-                      tooltip="Yêu cầu vật tư"
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton 
+                        isActive={isRequestsActive}
+                        tooltip="Yêu cầu vật tư"
+                      >
+                        <FileText />
+                        <span>Yêu cầu vật tư</span>
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      side="right" 
+                      align="start" 
+                      className="w-48"
+                      sideOffset={8}
                     >
-                      <FileText />
-                      <span>Yêu cầu vật tư</span>
-                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
                       {requestSubItems.map((item) => (
-                        <SidebarMenuSubItem key={item.title}>
-                          <SidebarMenuSubButton 
-                            asChild
-                            isActive={pathname === item.url}
+                        <DropdownMenuItem key={item.title} asChild>
+                          <Link 
+                            href={item.url}
+                            className="flex items-center gap-2 w-full"
                           >
-                            <Link href={item.url}>
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </DropdownMenuItem>
                       ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </SidebarMenuItem>
-              </Collapsible>
+              ) : (
+                <Collapsible defaultOpen={isRequestsActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton 
+                        isActive={isRequestsActive}
+                        tooltip="Yêu cầu vật tư"
+                      >
+                        <FileText />
+                        <span>Yêu cầu vật tư</span>
+                        <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {requestSubItems.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton 
+                              asChild
+                              isActive={pathname === item.url}
+                            >
+                              <Link href={item.url}>
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
