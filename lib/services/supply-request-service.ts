@@ -9,8 +9,6 @@ import type {
   GetSupplyRequestHistoryRPCArgs,
   GetSupplyRequestHistoryRPCResult,
   GetPendingApprovalsByRoleRPCArgs,
-  Request,
-  RequestWithDetails
 } from '@/types/database'
 import { BaseService } from './base-service'
 import { realtimeManager } from './realtime-manager'
@@ -63,11 +61,7 @@ class SupplyRequestService extends BaseService {
       const requestData = typedResult.request_data!
       const mappedResult: SupplyRequestWithItems = {
         ...requestData,
-        items: (requestData.items || []).map((item: any) => ({
-          ...item,
-          name: item.item_name, // Map database field to service interface
-          notes: item.description || undefined // Map database field to service interface and handle null
-        }))
+        items: requestData.items || [] // Items are already in correct format from RPC function
       }
 
       return {
@@ -108,9 +102,11 @@ class SupplyRequestService extends BaseService {
       }
 
       // RPC function returns JSONB array, parse and map to proper types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const requests = (result as unknown as any[]) || []
       
       // Map from RPC result to SupplyRequestWithItems format with strict typing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return requests.map((request: any): SupplyRequestWithItems => ({
         // Core request fields
         id: request.id,
@@ -131,6 +127,7 @@ class SupplyRequestService extends BaseService {
         // Note: Related data like request_type, requester, current_step are embedded in RPC response
         // but not part of SupplyRequestWithItems interface
         // Map items with proper field mapping
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         items: (request.items || []).map((item: any): SupplyRequestItem => ({
           id: item.id,
           request_id: item.request_id,
@@ -208,6 +205,7 @@ class SupplyRequestService extends BaseService {
       }
 
       // Map database results to service interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedData: SupplyRequestWithItems[] = (typedResult.data || []).map((request: any) => ({
         ...request,
         items: (request.items || []).map((item: RequestItem) => ({

@@ -1,13 +1,12 @@
 'use client'
 
-import { useMemo } from "react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { Eye, Calendar, Package } from "lucide-react"
 import { MobileDataView, useTableToMobileData } from "@/components/ui/mobile-data-view"
-import { StatusBadge } from "@/components/ui/status-badge"
+import { StatusBadge, type StatusType } from "@/components/ui/status-badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
-import type { SupplyRequestWithItems } from "@/types/database"
+import type { SupplyRequestWithItems, Priority } from "@/types/database"
 
 interface MobileHistoryViewProps {
   data: SupplyRequestWithItems[]
@@ -37,12 +36,12 @@ export function MobileHistoryView({ data, isLoading, onView }: MobileHistoryView
     ],
     badgesExtractor: (item) => [
       {
-        content: <StatusBadge status={item.status as any} />,
-        variant: undefined as any,
+        content: <StatusBadge status={item.status as StatusType} />,
+        variant: undefined,
       },
       {
-        content: <PriorityBadge priority={item.priority as any} />,
-        variant: undefined as any,
+        content: <PriorityBadge priority={item.priority as Priority} />,
+        variant: undefined,
       },
     ],
     actionsExtractor: (item) => [

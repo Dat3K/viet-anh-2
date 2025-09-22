@@ -20,40 +20,21 @@ export type RequestType = Tables<'request_types'>
 export type Role = Tables<'roles'>
 
 // =============================================================================
-// Table Insert Types
+// Table Insert Types (Only commonly used ones)
 // =============================================================================
 
-export type ApprovalStepInsert = TablesInsert<'approval_steps'>
-export type ApprovalWorkflowInsert = TablesInsert<'approval_workflows'>
-export type AuditLogInsert = TablesInsert<'audit_logs'>
-export type DepartmentInsert = TablesInsert<'departments'>
 export type ProfileInsert = TablesInsert<'profiles'>
-export type RequestApprovalInsert = TablesInsert<'request_approvals'>
-export type RequestItemInsert = TablesInsert<'request_items'>
 export type RequestInsert = TablesInsert<'requests'>
-export type RequestTypeInsert = TablesInsert<'request_types'>
-export type RoleInsert = TablesInsert<'roles'>
+export type RequestItemInsert = TablesInsert<'request_items'>
+export type RequestApprovalInsert = TablesInsert<'request_approvals'>
 
 // =============================================================================
-// Table Update Types
+// Table Update Types (Only commonly used ones)
 // =============================================================================
 
-export type ApprovalStepUpdate = TablesUpdate<'approval_steps'>
-export type ApprovalWorkflowUpdate = TablesUpdate<'approval_workflows'>
-export type AuditLogUpdate = TablesUpdate<'audit_logs'>
-export type DepartmentUpdate = TablesUpdate<'departments'>
 export type ProfileUpdate = TablesUpdate<'profiles'>
-export type RequestApprovalUpdate = TablesUpdate<'request_approvals'>
-export type RequestItemUpdate = TablesUpdate<'request_items'>
 export type RequestUpdate = TablesUpdate<'requests'>
-export type RequestTypeUpdate = TablesUpdate<'request_types'>
-export type RoleUpdate = TablesUpdate<'roles'>
-
-// =============================================================================
-// Enum Types
-// =============================================================================
-
-// Currently no enums are defined in the database schema
+export type RequestItemUpdate = TablesUpdate<'request_items'>
 
 // =============================================================================
 // Common Union Types
@@ -68,7 +49,7 @@ export type Priority = 'low' | 'medium' | 'high' | 'urgent'
 // =============================================================================
 
 export type CreateRequest = Omit<RequestInsert, 'id' | 'created_at' | 'updated_at' | 'request_number'>
-export type UpdateRequest = Pick<RequestUpdate, 'title' | 'due_date' | 'priority' | 'status'>
+export type CreateRequestItem = Omit<RequestItemInsert, 'id' | 'created_at' | 'updated_at'>
 
 // =============================================================================
 // Extended Types with Relationships
@@ -109,12 +90,6 @@ export type RequestApprovalWithDetails = RequestApproval & {
 // =============================================================================
 // Extended Service Types
 // =============================================================================
-
-// Workflow Service Types
-export interface WorkflowWithFullDetails extends ApprovalWorkflowWithSteps {
-  request_type?: RequestType
-  role?: Role
-}
 
 // Role Service Types
 export interface RoleWithDepartment extends Role {
@@ -189,24 +164,11 @@ export interface CreateSupplyRequestRPCResult {
 }
 
 // Get Pending Approvals RPC Types
-export interface GetPendingApprovalsRPCArgs {
-  p_user_id: string
-  p_role_id: string
-  p_request_type_name?: string
-  p_include_items?: boolean
-}
-
 export interface GetPendingApprovalsByRoleRPCArgs {
   p_user_id: string
   p_role_id: string
   p_request_type_name?: string
   p_include_items?: boolean
-}
-
-export interface GetPendingApprovalsByRoleRPCResult {
-  success: boolean
-  data: RequestWithDetails[]
-  message?: string
 }
 
 // Get Supply Request History RPC Types  
@@ -225,6 +187,34 @@ export interface GetSupplyRequestHistoryRPCResult {
   page_size: number
 }
 
-// =============================================================================
-// Type Guards
-// =============================================================================
+// Process Request Approval with Items RPC Types
+export interface ProcessRequestApprovalWithItemsRPCArgs {
+  p_request_id: string
+  p_step_id: string
+  p_approver_id: string
+  p_approval_status: string
+  p_comments: string
+  p_new_status: string
+  p_new_step_id: string | null
+  p_updated_items?: UpdatedRequestItem[] // Properly typed items array instead of raw JSON
+}
+
+export interface ProcessRequestApprovalWithItemsRPCResult {
+  success: boolean
+  new_status: string
+  message: string
+}
+
+// Enhanced Approval Action with Items Update
+export interface ApprovalActionWithItems extends ApprovalAction {
+  updatedItems?: UpdatedRequestItem[]
+}
+
+// Updated Request Item for approval process
+export interface UpdatedRequestItem {
+  id: string // Required for identifying which item to update
+  item_name?: string // Maps to database field
+  description?: string // Maps to database field  
+  quantity?: number
+  unit?: string
+}

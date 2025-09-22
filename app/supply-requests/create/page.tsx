@@ -135,7 +135,7 @@ export default function CreateSupplyRequestPage() {
 
           // Expand all items to show copied data
           const expandedItems: Record<string, boolean> = {}
-          copyData.items?.forEach((_: any, index: number) => {
+          copyData.items?.forEach((_: CreateSupplyRequestData['items'][number], index: number) => {
             expandedItems[index.toString()] = true
           })
           setOpenItems(expandedItems)

@@ -7,8 +7,11 @@ import type {
   Profile,
   ApprovalStep,
   ApprovalAction,
-  PendingApprovalRequest,
-  RequestWithDetails
+  ApprovalActionWithItems,
+  RequestWithDetails,
+  RequestItem,
+  ProcessRequestApprovalWithItemsRPCArgs,
+  ProcessRequestApprovalWithItemsRPCResult,
 } from '@/types/database'
 
 /**
@@ -104,7 +107,7 @@ export class ApprovalService extends BaseService {
           const requestTypes = request.request_types as Array<RequestType>
           const profiles = request.profiles as Array<Profile>
           const approvalSteps = request.approval_steps as Array<ApprovalStep>
-          const requestItems = request.request_items as Array<any> | undefined
+          const requestItems = request.request_items as Array<RequestItem> | undefined
 
           return {
             ...(request as Request),
@@ -122,11 +125,27 @@ export class ApprovalService extends BaseService {
   }
 
   /**
-   * Process approval (approve or reject)
+   * Process approval (approve or reject) - Backward compatibility wrapper
    */
   async processApproval(
     requestId: string,
     action: ApprovalAction
+  ): Promise<{ success: boolean; newStatus: string; message: string }> {
+    // Delegate to enhanced method without items update
+    const enhancedAction: ApprovalActionWithItems = {
+      ...action,
+      updatedItems: undefined // No items update for backward compatibility
+    }
+    
+    return this.processApprovalWithItems(requestId, enhancedAction)
+  }
+
+  /**
+   * Process approval with items update (Enhanced version)
+   */
+  async processApprovalWithItems(
+    requestId: string,
+    action: ApprovalActionWithItems
   ): Promise<{ success: boolean; newStatus: string; message: string }> {
     try {
       const user = await this.getCurrentUser()
@@ -213,37 +232,41 @@ export class ApprovalService extends BaseService {
         }
       }
 
-      // Use database function for atomic approval processing
+      // Use enhanced RPC function for atomic approval processing
+      const rpcArgs: ProcessRequestApprovalWithItemsRPCArgs = {
+        p_request_id: requestId,
+        p_step_id: request.current_step_id,
+        p_approver_id: user.id,
+        p_approval_status: action.action === 'approve' ? 'approved' : 'rejected',
+        p_comments: action.comments || '',
+        p_new_status: newStatus,
+        p_new_step_id: newCurrentStepId,
+        p_updated_items: action.updatedItems
+      }
+
       const { data: result, error: functionError } = await this.supabase
-        .rpc('process_request_approval', {
-          p_request_id: requestId,
-          p_step_id: request.current_step_id,
-          p_approver_id: user.id,
-          p_approval_status: action.action === 'approve' ? 'approved' : 'rejected',
-          p_comments: action.comments || '',
-          p_new_status: newStatus,
-          p_new_step_id: newCurrentStepId
-        })
+        .rpc('process_request_approval_with_items', rpcArgs)
 
       if (functionError) {
         console.error('Database function error:', functionError)
         throw new Error(`Failed to process approval: ${functionError.message}`)
       }
 
-      // Database function returns array, get first result
-      const functionResult = Array.isArray(result) ? result[0] : result
+      // Extract result from RPC response
+      const functionResult: ProcessRequestApprovalWithItemsRPCResult = Array.isArray(result) ? result[0] : result
 
-      if (!functionResult || !functionResult.success) {
+      if (!functionResult?.success) {
         throw new Error(functionResult?.message || 'Approval processing failed')
       }
 
       return {
-        success: true,
+        success: functionResult.success,
         newStatus: functionResult.new_status,
         message: functionResult.message
       }
     } catch (error) {
-      this.handleError(error, 'ApprovalService.processApproval')
+      this.handleError(error, 'ApprovalService.processApprovalWithItems')
+      throw error
     }
   }
 

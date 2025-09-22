@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { Button } from '@/components/ui/button'
 import { RequestDetail } from '@/components/supply-requests/request-detail'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
+import type { ProcessRequestApprovalWithItemsRPCResult } from '@/types/database'
 
 /**
  * Supply Request Detail Page
@@ -37,7 +38,7 @@ export default function SupplyRequestDetailPage() {
     )
   }
 
-  const handleApprovalProcessed = (action: 'approve' | 'reject', result: any) => {
+  const handleApprovalProcessed = (action: 'approve' | 'reject', result: ProcessRequestApprovalWithItemsRPCResult) => {
     // Could redirect to approval page or show success message
     // For now, we'll stay on the page to show the updated status
     console.log('Approval processed:', action, result)

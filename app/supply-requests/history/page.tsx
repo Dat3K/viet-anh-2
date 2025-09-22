@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   useReactTable,
@@ -62,8 +62,8 @@ import {
 } from "lucide-react"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { vi } from "date-fns/locale"
-import { toast } from "sonner"
-import type { SupplyRequestWithItems } from "@/types/database"
+import type { SupplyRequestWithItems, SupplyRequestItem, Priority } from "@/types/database"
+import type { StatusType } from "@/components/ui/status-badge"
 import { useSupplyRequestHistory, useSupplyRequestRealtime } from "@/hooks/use-supply-requests"
 import { useBreakpoint } from "@/hooks/use-mobile"
 
@@ -96,8 +96,8 @@ function MobileRequestCard({ request, onView }: { request: SupplyRequestWithItem
         </div>
         
         <div className="flex flex-wrap gap-2 mb-3">
-          <StatusBadge status={request.status as any} />
-          <PriorityBadge priority={request.priority as any} />
+          <StatusBadge status={request.status as StatusType} />
+          <PriorityBadge priority={request.priority as Priority} />
           <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
             <Package className="h-3 w-3" />
             {request.items?.length || 0} vật tư
@@ -115,7 +115,7 @@ function MobileRequestCard({ request, onView }: { request: SupplyRequestWithItem
 
 export default function SupplyRequestHistoryPage() {
   const router = useRouter()
-  const { isMobile, isTablet } = useBreakpoint()
+  const { isMobile } = useBreakpoint()
 
   // Table state management
   const [sorting, setSorting] = useState<SortingState>([
@@ -165,6 +165,10 @@ export default function SupplyRequestHistoryPage() {
     debounceMs: 200, // Slightly higher for history page
     enableHealthMonitoring: true
   })
+
+  const handleView = useCallback((requestId: string) => {
+    router.push(`/supply-requests/${requestId}`)
+  }, [router])
 
   // Table columns definition with proper typing
   const columns = useMemo<ColumnDef<SupplyRequestWithItems, unknown>[]>(() => [
@@ -216,7 +220,7 @@ export default function SupplyRequestHistoryPage() {
           )}
         </Button>
       ),
-      cell: ({ getValue }) => <StatusBadge status={getValue() as any} />,
+      cell: ({ getValue }) => <StatusBadge status={getValue() as StatusType} />,
       enableSorting: true,
     },
     {
@@ -239,7 +243,7 @@ export default function SupplyRequestHistoryPage() {
           )}
         </Button>
       ),
-      cell: ({ getValue }) => <PriorityBadge priority={getValue() as any} />,
+      cell: ({ getValue }) => <PriorityBadge priority={getValue() as Priority} />,
       enableSorting: true,
     },
     {
@@ -247,7 +251,7 @@ export default function SupplyRequestHistoryPage() {
       accessorKey: 'items',
       header: 'Vật tư',
       cell: ({ getValue }) => {
-        const items = getValue() as any[]
+        const items = getValue() as SupplyRequestItem[]
         return (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Package className="h-3 w-3" />
@@ -307,7 +311,7 @@ export default function SupplyRequestHistoryPage() {
         </div>
       ),
     },
-  ], [])
+  ], [handleView])
 
   // Initialize TanStack Table
   const table = useReactTable({
@@ -329,10 +333,6 @@ export default function SupplyRequestHistoryPage() {
     manualSorting: true, // Server-side sorting  
     pageCount: historyData?.totalPages || 0,
   })
-
-  const handleView = (requestId: string) => {
-    router.push(`/supply-requests/${requestId}`)
-  }
 
   const handleResetFilters = () => {
     setFilters({

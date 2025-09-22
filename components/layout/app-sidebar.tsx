@@ -5,7 +5,6 @@ import {
   Plus, 
   History,
   CheckCircle,
-  Clock,
   ChevronRight,
   Home,
   User
@@ -43,7 +42,7 @@ import Image from "next/image"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { isMobile, isTablet, isDesktop } = useBreakpoint()
+  const { isMobile, isTablet } = useBreakpoint()
   const { state } = useSidebar()
   const { canApprove } = useApprovalPermission()
 

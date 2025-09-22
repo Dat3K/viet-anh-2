@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { RequestDetail } from './request-detail'
 import { Badge } from '@/components/ui/badge'
+import type { ProcessRequestApprovalWithItemsRPCResult } from '@/types/database'
 
 interface RequestDetailModalProps {
   requestId: string
@@ -23,7 +24,7 @@ interface RequestDetailModalProps {
   /** Modal title override */
   title?: string
   /** Callback when approval is processed */
-  onApprovalProcessed?: (action: 'approve' | 'reject', result: any) => void
+  onApprovalProcessed?: (action: 'approve' | 'reject', result: ProcessRequestApprovalWithItemsRPCResult) => void
 }
 
 /**
@@ -40,7 +41,7 @@ export function RequestDetailModal({
   title,
   onApprovalProcessed
 }: RequestDetailModalProps) {
-  const handleApprovalProcessed = (action: 'approve' | 'reject', result: any) => {
+  const handleApprovalProcessed = (action: 'approve' | 'reject', result: ProcessRequestApprovalWithItemsRPCResult) => {
     // Close modal on successful approval
     onOpenChange(false)
     onApprovalProcessed?.(action, result)

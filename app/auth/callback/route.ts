@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
  * Ensure user profile exists, create if missing
  * Wait for database trigger or create manually if trigger fails
  */
-async function ensureUserProfile(supabase: any, userId: string) {
+async function ensureUserProfile(supabase: SupabaseClient, userId: string) {
   // Check if profile already exists
   const { data: existingProfile } = await supabase
     .from('profiles')
@@ -163,7 +164,7 @@ async function ensureUserProfile(supabase: any, userId: string) {
   const defaultRoleId = 'b880ba01-cf3d-469a-9e10-11fb04ed4529' // "Người dùng mới" role
   
   // Extract full_name from user metadata safely
-  const metadata = authUser.user.raw_user_meta_data || {}
+  const metadata = authUser.user.user_metadata || {}
   const fullName = metadata.full_name || 
                    metadata.name || 
                    (metadata.given_name && metadata.family_name ? 

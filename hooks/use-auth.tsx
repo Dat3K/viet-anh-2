@@ -2,13 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 
 const supabase = createClient()
 
 export function useAuth() {
-  const router = useRouter()
   const queryClient = useQueryClient()
 
   // Query to get current user

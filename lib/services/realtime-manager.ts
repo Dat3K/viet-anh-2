@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { RealtimeChannel, SupabaseClient, RealtimePostgresChangesPayload, RealtimeChannelSendResponse } from '@supabase/supabase-js'
+import type { RealtimeChannel, SupabaseClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 /**
  * Interface for table subscription configuration
@@ -122,6 +122,7 @@ class DebouncedCallback<T> {
 class OptimizedRealtimeManager {
   private supabase: SupabaseClient
   private channelStatuses = new Map<string, ChannelStatus>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private debouncedCallbacks = new Map<string, DebouncedCallback<any>>()
   private connectionStartTime = new Date()
   private connectionErrors = 0
@@ -223,6 +224,7 @@ class OptimizedRealtimeManager {
         if (callback) {
           // Proper typing for Supabase postgres_changes events
           // Using proper Supabase RealtimeChannel.on typing
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (channel as any).on(
             'postgres_changes',
             {
@@ -413,7 +415,7 @@ class OptimizedRealtimeManager {
           this.supabase.removeChannel(channelStatus.channel)
         } catch (removeError) {
           // Channel might already be removed by Supabase, ignore this error
-          console.debug(`Channel ${channelName} already removed or not found in Supabase client`)
+          console.debug(`Channel ${channelName} already removed or not found in Supabase client. Err:${removeError}`)
         }
         
         this.channelStatuses.delete(channelName)
@@ -535,7 +537,7 @@ class OptimizedRealtimeManager {
    */
   private performHealthCheck(): void {
     const unhealthyChannels = Array.from(this.channelStatuses.entries())
-      .filter(([_, status]) => status.status === 'CHANNEL_ERROR' || status.status === 'TIMED_OUT')
+      .filter(([, status]) => status.status === 'CHANNEL_ERROR' || status.status === 'TIMED_OUT')
     
     if (unhealthyChannels.length > 0) {
       console.warn(`⚠️ Found ${unhealthyChannels.length} unhealthy channels:`, 
@@ -573,21 +575,8 @@ class OptimizedRealtimeManager {
       const channelNames = Array.from(this.channelStatuses.keys())
       console.log(`🔄 Optimized reconnection for ${channelNames.length} channels...`)
       
-      // Store channel configurations for recreation
-      const channelConfigs = new Map<string, { 
-        subscriptions: TableSubscription[], 
-        options: {
-          enableDebouncing?: boolean
-          debounceMs?: number
-          enableRetry?: boolean
-          maxRetries?: number
-        }, 
-        onError?: (error: Error) => void 
-      }>()
-      
       // Unsubscribe all channels
       channelNames.forEach(channelName => {
-        // Could store config here for auto-recreation if needed
         this.unsubscribe(channelName)
       })
       
@@ -751,7 +740,7 @@ class OptimizedRealtimeManager {
    */
   cleanupUnhealthyChannels(): void {
     const unhealthyChannels = Array.from(this.channelStatuses.entries())
-      .filter(([_, status]) => 
+      .filter(([, status]) => 
         status.status === 'CHANNEL_ERROR' || 
         status.status === 'TIMED_OUT' ||
         (status.subscribedAt && Date.now() - status.subscribedAt.getTime() > 300000) // 5 minutes

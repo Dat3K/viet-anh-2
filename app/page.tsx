@@ -12,11 +12,9 @@ import {
   History,
   CheckCircle,
   ArrowRight,
-  Users,
   Shield,
   BookOpen,
   School,
-  ClipboardCheck
 } from "lucide-react"
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
