@@ -7,7 +7,8 @@ import type {
   Profile,
   ApprovalStep,
   ApprovalAction,
-  PendingApprovalRequest
+  PendingApprovalRequest,
+  RequestWithDetails
 } from '@/types/database'
 
 /**
@@ -21,7 +22,7 @@ export class ApprovalService extends BaseService {
     requestTypeName?: string | string[]
     requestTypeId?: string | string[]
     includeItems?: boolean
-  } = {}): Promise<PendingApprovalRequest[]> {
+  } = {}): Promise<RequestWithDetails[]> {
     try {
       const user = await this.getCurrentUser()
       console.log('🔍 Getting pending approvals for user:', user.id)
@@ -52,12 +53,11 @@ export class ApprovalService extends BaseService {
         .not('current_step_id', 'is', null)
         .order('created_at', { ascending: false })
 
-      // Apply approval visibility logic:
-      // If step has approver_employee_id, only that specific user can see the request
-      // If step has no approver_employee_id (null), fall back to role-based approval
+      // Apply approval visibility logic with proper syntax
       if (userRoleId) {
+        // Use correct PostgREST OR syntax with proper comma separation
         query = query.or(
-          `and(approver_employee_id.eq.${user.id}),and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
+          `approver_employee_id.eq.${user.id},and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
           { referencedTable: 'approval_steps' }
         )
       } else {
@@ -76,27 +76,48 @@ export class ApprovalService extends BaseService {
       }
 
       const { data, error } = await query
-      if (error) throw error
+      if (error) {
+        console.error('🚨 Supabase query error:', error)
+        throw error
+      }
 
       const rows = (data ?? []) as unknown as Record<string, unknown>[]
 
+      // Debug logging
+      console.log('🔍 ApprovalService debug:', {
+        queryIncludeItems: options.includeItems,
+        rowCount: rows.length,
+        includeItemsOption: options.includeItems,
+        sampleRow: rows[0] ? {
+          id: rows[0].id,
+          title: rows[0].title,
+          hasRequestItems: !!rows[0].request_items,
+          requestItemsType: typeof rows[0].request_items,
+          requestItemsLength: Array.isArray(rows[0].request_items) ? rows[0].request_items.length : 'not array',
+          requestItemsRaw: rows[0].request_items
+        } : null
+      })
+
       // Type-safe mapping using proper Supabase response types
       return (
-        rows.map((request: Record<string, unknown>): PendingApprovalRequest => {
+        rows.map((request: Record<string, unknown>): RequestWithDetails => {
           const requestTypes = request.request_types as Array<RequestType>
           const profiles = request.profiles as Array<Profile>
           const approvalSteps = request.approval_steps as Array<ApprovalStep>
+          const requestItems = request.request_items as Array<any> | undefined
 
           return {
             ...(request as Request),
             request_type: Array.isArray(requestTypes) ? requestTypes[0] : (requestTypes as unknown as RequestType),
             requester: Array.isArray(profiles) ? profiles[0] : (profiles as unknown as Profile),
-            current_step: Array.isArray(approvalSteps) ? approvalSteps[0] : (approvalSteps as unknown as ApprovalStep)
+            current_step: Array.isArray(approvalSteps) ? approvalSteps[0] : (approvalSteps as unknown as ApprovalStep),
+            items: requestItems ? requestItems : undefined
           }
         }) || []
       )
     } catch (error) {
       this.handleError(error, 'ApprovalService.getPendingApprovalRequests')
+      return []
     }
   }
 
@@ -163,31 +184,15 @@ export class ApprovalService extends BaseService {
         }
       }
 
-      // Create approval record (only if it doesn't exist)
-      const { error: approvalError } = await this.supabase
-        .from('request_approvals')
-        .insert({
-          request_id: requestId,
-          step_id: request.current_step_id,
-          approver_id: user.id,
-          status: action.action === 'approve' ? 'approved' : 'rejected',
-          comments: action.comments || null,
-          approved_at: this.getCurrentTimestamp(),
-          created_at: this.getCurrentTimestamp()
-        })
-
-      if (approvalError) throw approvalError
-
-      let newStatus = request.status
-      let newCurrentStepId = request.current_step_id
-      let message = ''
-
+      // Determine new status and next step based on action
+      let newStatus: string = request.status
+      let newCurrentStepId: string | null = request.current_step_id
+      
       if (action.action === 'reject') {
         newStatus = 'rejected'
         newCurrentStepId = null
-        message = 'Request has been rejected'
       } else {
-        // Find next step
+        // Find next step for approval
         const currentStep = await workflowService.getApprovalStepById(request.current_step_id)
         if (!currentStep) {
           throw new Error('Current approval step not found')
@@ -201,34 +206,41 @@ export class ApprovalService extends BaseService {
         if (nextStep) {
           newCurrentStepId = nextStep.id
           newStatus = 'in_progress'
-          message = `Request approved and moved to next step: ${nextStep.step_name}`
         } else {
           // No more steps, fully approved
           newStatus = 'approved'
           newCurrentStepId = null
-          message = 'Request has been fully approved'
         }
       }
 
-      // Update request status
-      const { error: updateError } = await this.supabase
-        .from('requests')
-        .update({
-          status: newStatus,
-          current_step_id: newCurrentStepId,
-          completed_at: newStatus === 'approved' || newStatus === 'rejected' 
-            ? this.getCurrentTimestamp() 
-            : null,
-          updated_at: this.getCurrentTimestamp()
+      // Use database function for atomic approval processing
+      const { data: result, error: functionError } = await this.supabase
+        .rpc('process_request_approval', {
+          p_request_id: requestId,
+          p_step_id: request.current_step_id,
+          p_approver_id: user.id,
+          p_approval_status: action.action === 'approve' ? 'approved' : 'rejected',
+          p_comments: action.comments || '',
+          p_new_status: newStatus,
+          p_new_step_id: newCurrentStepId
         })
-        .eq('id', requestId)
 
-      if (updateError) throw updateError
+      if (functionError) {
+        console.error('Database function error:', functionError)
+        throw new Error(`Failed to process approval: ${functionError.message}`)
+      }
+
+      // Database function returns array, get first result
+      const functionResult = Array.isArray(result) ? result[0] : result
+
+      if (!functionResult || !functionResult.success) {
+        throw new Error(functionResult?.message || 'Approval processing failed')
+      }
 
       return {
         success: true,
-        newStatus,
-        message
+        newStatus: functionResult.new_status,
+        message: functionResult.message
       }
     } catch (error) {
       this.handleError(error, 'ApprovalService.processApproval')
@@ -334,7 +346,7 @@ export class ApprovalService extends BaseService {
       // Apply same approval visibility logic as getPendingApprovalRequests
       if (userRoleId) {
         query = query.or(
-          `and(approver_employee_id.eq.${currentUserId}),and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
+          `approver_employee_id.eq.${currentUserId},and(approver_employee_id.is.null,approver_role_id.eq.${userRoleId})`,
           { referencedTable: 'approval_steps' }
         )
       } else {

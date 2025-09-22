@@ -168,5 +168,63 @@ export interface PendingApprovalRequest extends Request {
 }
 
 // =============================================================================
+// RPC Function Types
+// =============================================================================
+
+// Create Supply Request RPC Types
+export interface CreateSupplyRequestRPCArgs {
+  p_requester_id: string
+  p_role_id: string
+  p_title: string
+  p_purpose: string
+  p_requested_date: string
+  p_priority: string
+  p_items: string // JSON string
+}
+
+export interface CreateSupplyRequestRPCResult {
+  success: boolean
+  message: string
+  request_data?: SupplyRequestWithItems
+}
+
+// Get Pending Approvals RPC Types
+export interface GetPendingApprovalsRPCArgs {
+  p_user_id: string
+  p_role_id: string
+  p_request_type_name?: string
+  p_include_items?: boolean
+}
+
+export interface GetPendingApprovalsByRoleRPCArgs {
+  p_user_id: string
+  p_role_id: string
+  p_request_type_name?: string
+  p_include_items?: boolean
+}
+
+export interface GetPendingApprovalsByRoleRPCResult {
+  success: boolean
+  data: RequestWithDetails[]
+  message?: string
+}
+
+// Get Supply Request History RPC Types  
+export interface GetSupplyRequestHistoryRPCArgs {
+  p_user_id: string
+  p_filters: string // JSON string
+}
+
+export interface GetSupplyRequestHistoryRPCResult {
+  success: boolean
+  message?: string
+  data: SupplyRequestWithItems[]
+  total_count: number
+  total_pages: number
+  current_page: number
+  page_size: number
+}
+
+// =============================================================================
 // Type Guards
 // =============================================================================
