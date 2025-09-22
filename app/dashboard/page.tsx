@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { AppLayout } from '@/components/layout/app-layout'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
   FileText, 
@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
+import { useApprovalPermission } from '@/hooks/use-approval-permission'
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -48,31 +49,14 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       {/* Welcome Header Skeleton */}
-      <div>
-        <Skeleton className="h-8 w-64 mb-2" />
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-96" />
       </div>
 
-      {/* Quick Stats Skeleton */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="ml-4 space-y-2">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-6 w-16" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Main Features Skeleton */}
-      <div>
-        <Skeleton className="h-6 w-48 mb-4" />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-48" />
         <div className="grid gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
@@ -123,7 +107,10 @@ function DashboardSkeleton() {
 }
 
 function DashboardContent() {
-  const mainFeatures = [
+  const { canApprove } = useApprovalPermission()
+
+  // Base features (always visible)
+  const baseFeatures = [
     {
       title: "Tạo yêu cầu vật tư",
       description: "Tạo yêu cầu mới cho vật tư và thiết bị giảng dạy",
@@ -139,19 +126,28 @@ function DashboardContent() {
       color: "bg-green-500"
     },
     {
-      title: "Phê duyệt yêu cầu",
-      description: "Duyệt các yêu cầu từ giáo viên khác",
-      icon: CheckCircle,
-      href: "/supply-requests/approve",
-      color: "bg-purple-500"
-    },
-    {
       title: "Danh sách yêu cầu",
       description: "Xem tất cả yêu cầu trong hệ thống",
       icon: FileText,
       href: "/supply-requests",
       color: "bg-orange-500"
     }
+  ]
+
+  // Approval feature (conditional)
+  const approvalFeature = {
+    title: "Phê duyệt yêu cầu",
+    description: "Duyệt các yêu cầu từ giáo viên khác",
+    icon: CheckCircle,
+    href: "/supply-requests/approve",
+    color: "bg-purple-500"
+  }
+
+  // Combine features based on permissions
+  const mainFeatures = [
+    ...baseFeatures,
+    // Only show approval feature if user has permission
+    ...(canApprove ? [approvalFeature] : [])
   ]
 
   return (

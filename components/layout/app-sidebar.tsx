@@ -13,6 +13,7 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useBreakpoint } from "@/hooks/use-mobile"
+import { useApprovalPermission } from "@/hooks/use-approval-permission"
 
 import {
   Sidebar,
@@ -40,39 +41,74 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
 
-// Supply request sub-items
-const requestSubItems = [
-  {
-    title: "Danh sách yêu cầu",
-    url: "/supply-requests",
-    icon: FileText,
-  },
-  {
-    title: "Tạo yêu cầu",
-    url: "/supply-requests/create",
-    icon: Plus,
-  },
-  {
-    title: "Lịch sử yêu cầu",
-    url: "/supply-requests/history",
-    icon: History,
-  },
-  {
+export function AppSidebar() {
+  const pathname = usePathname()
+  const { isMobile, isTablet, isDesktop } = useBreakpoint()
+  const { state } = useSidebar()
+  const { canApprove } = useApprovalPermission()
+
+  // Base supply request items (always visible)
+  const baseRequestItems = [
+    {
+      title: "Danh sách yêu cầu",
+      url: "/supply-requests",
+      icon: FileText,
+    },
+    {
+      title: "Tạo yêu cầu",
+      url: "/supply-requests/create",
+      icon: Plus,
+    },
+    {
+      title: "Lịch sử yêu cầu",
+      url: "/supply-requests/history",
+      icon: History,
+    },
+  ]
+
+  // Approval item (conditional)
+  const approvalItem = {
     title: "Phê duyệt yêu cầu",
     url: "/supply-requests/approve",
     icon: CheckCircle,
-  },
-]
+  }
 
-export function AppSidebar() {
-  const pathname = usePathname()
-  const { isMobile } = useBreakpoint()
-  const { state } = useSidebar()
+  // Combine items based on permissions
+  const requestSubItems = [
+    ...baseRequestItems,
+    // Only show approval item if user has permission
+    ...(canApprove ? [approvalItem] : [])
+  ]
 
   const isRequestsActive = pathname.startsWith('/supply-requests')
   const isDashboardActive = pathname === '/dashboard'
   const isProfileActive = pathname === '/profile'
   const isCollapsed = state === 'collapsed'
+
+  // Determine dropdown positioning based on screen size
+  const getDropdownProps = () => {
+    const isOffcanvas = isMobile && state === 'expanded'
+    
+    if (isMobile || isTablet) {
+      // On mobile/tablet, dropdown should open downward
+      return {
+        side: "bottom" as const,
+        align: isOffcanvas ? "center" as const : "start" as const,
+        className: "w-48",
+        sideOffset: isOffcanvas ? 2 : 4,
+      }
+    }
+    
+    // On desktop, dropdown opens to the right
+    return {
+      side: "right" as const,
+      align: "start" as const, 
+      className: "w-48",
+      sideOffset: 8,
+    }
+  }
+
+  const dropdownProps = getDropdownProps()
 
   return (
     <Sidebar collapsible={isMobile ? "offcanvas" : "icon"}>
@@ -139,10 +175,10 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
-                      side="right" 
-                      align="start" 
-                      className="w-48"
-                      sideOffset={8}
+                      side={dropdownProps.side}
+                      align={dropdownProps.align}
+                      className={dropdownProps.className}
+                      sideOffset={dropdownProps.sideOffset}
                     >
                       {requestSubItems.map((item) => (
                         <DropdownMenuItem key={item.title} asChild>

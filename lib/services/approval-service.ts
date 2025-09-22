@@ -24,7 +24,11 @@ export class ApprovalService extends BaseService {
   } = {}): Promise<PendingApprovalRequest[]> {
     try {
       const user = await this.getCurrentUser()
-      const userRoleId = await this.getCurrentUserRoleId()
+      console.log('🔍 Getting pending approvals for user:', user.id)
+      
+      const userProfile = await this.getCurrentUserProfile()
+      const userRoleId = userProfile.role_id
+      console.log('🔍 User profile and role:', { profileId: userProfile.id, roleId: userRoleId })
 
       // Build dynamic select clause using non-aliased names to keep filters stable
       let select = `
