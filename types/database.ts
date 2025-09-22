@@ -27,6 +27,8 @@ export type ProfileInsert = TablesInsert<'profiles'>
 export type RequestInsert = TablesInsert<'requests'>
 export type RequestItemInsert = TablesInsert<'request_items'>
 export type RequestApprovalInsert = TablesInsert<'request_approvals'>
+export type DepartmentInsert = TablesInsert<'departments'>
+export type RequestTypeInsert = TablesInsert<'request_types'>
 
 // =============================================================================
 // Table Update Types (Only commonly used ones)
@@ -35,6 +37,9 @@ export type RequestApprovalInsert = TablesInsert<'request_approvals'>
 export type ProfileUpdate = TablesUpdate<'profiles'>
 export type RequestUpdate = TablesUpdate<'requests'>
 export type RequestItemUpdate = TablesUpdate<'request_items'>
+export type DepartmentUpdate = TablesUpdate<'departments'>
+export type RequestTypeUpdate = TablesUpdate<'request_types'>
+
 
 // =============================================================================
 // Common Union Types

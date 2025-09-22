@@ -1,13 +1,15 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle, RefreshCw, Home } from 'lucide-react'
+import { AlertCircle, RefreshCw, Home, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function AuthCodeErrorPage() {
+// Component that uses useSearchParams
+function AuthCodeErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
@@ -125,5 +127,63 @@ export default function AuthCodeErrorPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function AuthCodeErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Hệ Thống Quản Lý
+          </h1>
+          <p className="text-muted-foreground">
+            Trường Trung Tiểu Học Việt Anh
+          </p>
+        </div>
+        
+        <Card>
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4">
+              <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+            </div>
+            <CardTitle className="text-2xl text-center">
+              Đang tải...
+            </CardTitle>
+            <CardDescription className="text-center">
+              Đang xử lý thông tin lỗi
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Button asChild className="w-full">
+                <Link href="/auth/login">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Thử Đăng Nhập Lại
+                </Link>
+              </Button>
+              
+              <Button variant="outline" asChild className="w-full">
+                <Link href="/">
+                  <Home className="mr-2 h-4 w-4" />
+                  Về Trang Chủ
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+// Main export component with Suspense boundary
+export default function AuthCodeErrorPage() {
+  return (
+    <Suspense fallback={<AuthCodeErrorFallback />}>
+      <AuthCodeErrorContent />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -47,7 +47,8 @@ import { useCreateSupplyRequest } from '@/hooks/use-supply-requests'
 
 import { toast } from 'sonner'
 
-export default function CreateSupplyRequestPage() {
+// Component that uses useSearchParams
+function CreateSupplyRequestContent() {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   const [showOptimisticFeedback, setShowOptimisticFeedback] = useState(false)
   const addButtonRef = useRef<HTMLDivElement>(null)
@@ -645,5 +646,46 @@ export default function CreateSupplyRequestPage() {
         </Form>
       </div>
     </AppLayout>
+  )
+}
+
+// Loading fallback component
+function CreateSupplyRequestFallback() {
+  return (
+    <AppLayout>
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
+                <Package className="h-6 w-6" />
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang tải...
+              </h1>
+              <p className="text-muted-foreground">
+                Đang chuẩn bị form tạo yêu cầu vật tư
+              </p>
+            </div>
+
+            {/* Loading skeleton */}
+            <div className="space-y-4">
+              <div className="h-32 bg-muted rounded-lg animate-pulse" />
+              <div className="h-48 bg-muted rounded-lg animate-pulse" />
+              <div className="h-64 bg-muted rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  )
+}
+
+// Main export component with Suspense boundary
+export default function CreateSupplyRequestPage() {
+  return (
+    <Suspense fallback={<CreateSupplyRequestFallback />}>
+      <CreateSupplyRequestContent />
+    </Suspense>
   )
 }

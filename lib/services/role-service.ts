@@ -1,7 +1,5 @@
 import { BaseService } from './base-service'
 import type { 
-  RoleInsert, 
-  RoleUpdate,
   ProfileWithDetails,
   RoleWithDepartment
 } from '@/types/database'
@@ -200,78 +198,6 @@ export class RoleService extends BaseService {
       return supervisors
     } catch (error) {
       this.handleError(error, 'RoleService.getSupervisorRoles')
-    }
-  }
-
-  /**
-   * Create new role
-   */
-  async createRole(roleData: RoleInsert): Promise<RoleWithDepartment> {
-    try {
-      const { data, error } = await this.supabase
-        .from('roles')
-        .insert({
-          ...roleData,
-          created_at: this.getCurrentTimestamp(),
-          updated_at: this.getCurrentTimestamp()
-        })
-        .select(`
-          *,
-          department:departments(*)
-        `)
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      this.handleError(error, 'RoleService.createRole')
-    }
-  }
-
-  /**
-   * Update role
-   */
-  async updateRole(id: string, updates: RoleUpdate): Promise<RoleWithDepartment> {
-    try {
-      const { data, error } = await this.supabase
-        .from('roles')
-        .update({
-          ...updates,
-          updated_at: this.getCurrentTimestamp()
-        })
-        .eq('id', id)
-        .select(`
-          *,
-          department:departments(*)
-        `)
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      this.handleError(error, 'RoleService.updateRole')
-    }
-  }
-
-  /**
-   * Activate role
-   */
-  async activateRole(id: string): Promise<RoleWithDepartment> {
-    try {
-      return await this.updateRole(id, { is_active: true })
-    } catch (error) {
-      this.handleError(error, 'RoleService.activateRole')
-    }
-  }
-
-  /**
-   * Deactivate role
-   */
-  async deactivateRole(id: string): Promise<RoleWithDepartment> {
-    try {
-      return await this.updateRole(id, { is_active: false })
-    } catch (error) {
-      this.handleError(error, 'RoleService.deactivateRole')
     }
   }
 

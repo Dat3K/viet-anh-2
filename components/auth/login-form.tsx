@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { Loader2, CheckCircle } from 'lucide-react'
 
-export function LoginForm() {
+// Separate component that uses useSearchParams
+function LoginFormContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [showLogoutMessage, setShowLogoutMessage] = useState(false)
   const { signInWithAzure } = useAuth()
@@ -78,5 +79,34 @@ export function LoginForm() {
         Chỉ có thể đăng nhập bằng tài khoản Azure được ủy quyền
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function LoginFormFallback() {
+  return (
+    <div className="space-y-4">
+      <Button
+        disabled
+        className="w-full"
+        size="lg"
+      >
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Đang tải...
+      </Button>
+      
+      <div className="text-center text-sm text-muted-foreground">
+        Chỉ có thể đăng nhập bằng tài khoản Azure được ủy quyền
+      </div>
+    </div>
+  )
+}
+
+// Main export component with Suspense boundary
+export function LoginForm() {
+  return (
+    <Suspense fallback={<LoginFormFallback />}>
+      <LoginFormContent />
+    </Suspense>
   )
 }
