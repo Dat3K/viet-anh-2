@@ -58,19 +58,62 @@ export function useAuth() {
     },
   })
 
+  // Helper function to clear all storage and cookies
+  const clearAllStorage = () => {
+    try {
+      // Clear localStorage
+      localStorage.clear()
+      
+      // Clear sessionStorage
+      sessionStorage.clear()
+      
+      // Clear all cookies
+      const cookies = document.cookie.split(';')
+      cookies.forEach(cookie => {
+        const eqPos = cookie.indexOf('=')
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+        
+        // Clear cookie for current domain
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`
+        
+        // Clear for parent domain (if subdomain)
+        const parts = window.location.hostname.split('.')
+        if (parts.length > 2) {
+          const parentDomain = `.${parts.slice(-2).join('.')}`
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${parentDomain}`
+        }
+      })
+      
+      console.log('All storage and cookies cleared successfully')
+    } catch (error) {
+      console.error('Error clearing storage:', error)
+    }
+  }
+
   // Mutation for sign out
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.auth.signOut()
+      // Global logout from all devices
+      const { error } = await supabase.auth.signOut({ scope: 'global' })
       if (error) throw error
     },
     onSuccess: () => {
-      // Clear all queries and redirect to login
+      // Clear all queries first
       queryClient.clear()
-      router.push('/auth/login')
+      
+      // Clear all storage
+      clearAllStorage()
+      
+      // Force redirect with complete navigation reset
+      window.location.href = '/auth/login?logout=true'
     },
     onError: (error) => {
       console.error('Sign out error:', error)
+      
+      // Even if logout fails, clear storage and redirect
+      clearAllStorage()
+      window.location.href = '/auth/login?logout=true'
     },
   })
 

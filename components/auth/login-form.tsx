@@ -1,13 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const [showLogoutMessage, setShowLogoutMessage] = useState(false)
   const { signInWithAzure } = useAuth()
+  const searchParams = useSearchParams()
+
+  // Check for logout parameter
+  useEffect(() => {
+    const isLogout = searchParams.get('logout') === 'true'
+    if (isLogout) {
+      setShowLogoutMessage(true)
+      
+      // Auto-hide message after 5 seconds
+      const timer = setTimeout(() => {
+        setShowLogoutMessage(false)
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams])
 
   const handleAzureLogin = async () => {
     try {
@@ -22,6 +40,16 @@ export function LoginForm() {
 
   return (
     <div className="space-y-4">
+      {/* Logout success message */}
+      {showLogoutMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-3 flex items-center space-x-2">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <span className="text-sm text-green-700">
+            Đăng xuất thành công! Vui lòng đăng nhập lại.
+          </span>
+        </div>
+      )}
+
       <Button
         onClick={handleAzureLogin}
         disabled={isLoading}

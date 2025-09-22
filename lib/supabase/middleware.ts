@@ -84,9 +84,25 @@ export async function middleware(request: NextRequest) {
   
   // If user is authenticated and trying to access login page, redirect to dashboard
   if (user && request.nextUrl.pathname === '/auth/login') {
+    // Check for logout parameter - don't auto-redirect if user just logged out
+    const isLogout = request.nextUrl.searchParams.get('logout') === 'true'
+    
+    if (isLogout) {
+      // User just logged out, allow them to stay on login page
+      // Clean the logout parameter from URL
+      const cleanUrl = new URL(request.url)
+      cleanUrl.searchParams.delete('logout')
+      
+      if (cleanUrl.search !== request.nextUrl.search) {
+        return NextResponse.redirect(cleanUrl)
+      }
+      
+      return supabaseResponse
+    }
+    
     // Check if there's a redirect parameter from the original request
-    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard';
-    return NextResponse.redirect(new URL(redirectTo, request.url));
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard'
+    return NextResponse.redirect(new URL(redirectTo, request.url))
   }
   
   // If user is authenticated but trying to access auth callback, allow it
