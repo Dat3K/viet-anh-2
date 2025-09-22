@@ -241,7 +241,14 @@ export class ApprovalService extends BaseService {
         p_comments: action.comments || '',
         p_new_status: newStatus,
         p_new_step_id: newCurrentStepId,
-        p_updated_items: action.updatedItems
+        // Use database field names as trusted source - no dual mapping
+        p_updated_items: action.updatedItems?.map(item => ({
+          id: item.id,
+          item_name: item.item_name,
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit
+        }))
       }
 
       const { data: result, error: functionError } = await this.supabase
@@ -267,6 +274,35 @@ export class ApprovalService extends BaseService {
     } catch (error) {
       this.handleError(error, 'ApprovalService.processApprovalWithItems')
       throw error
+    }
+  }
+
+  /**
+   * Validate that all item IDs exist in the database for the given request
+   */
+  private async validateItemIds(requestId: string, itemIds: string[]): Promise<{ valid: boolean; missingIds: string[] }> {
+    try {
+      const { data: existingItems, error } = await this.supabase
+        .from('request_items')
+        .select('id')
+        .eq('request_id', requestId)
+        .in('id', itemIds)
+
+      if (error) {
+        console.error('Error validating item IDs:', error)
+        return { valid: false, missingIds: itemIds }
+      }
+
+      const existingIds = existingItems?.map(item => item.id) || []
+      const missingIds = itemIds.filter(id => !existingIds.includes(id))
+
+      return {
+        valid: missingIds.length === 0,
+        missingIds
+      }
+    } catch (error) {
+      console.error('Error in item validation:', error)
+      return { valid: false, missingIds: itemIds }
     }
   }
 

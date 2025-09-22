@@ -72,7 +72,7 @@ export function Header() {
           <BreadcrumbList>
             {breadcrumbs.map((crumb, index) => (
               <div key={crumb.href} className="flex items-center">
-                {index > 0 && <BreadcrumbSeparator className="hidden xs:block" />}
+                {index > 0 && <BreadcrumbSeparator className="hidden sm:block" />}
                 <BreadcrumbItem className={index === 0 ? "hidden sm:block" : ""}>
                   {crumb.isCurrentPage ? (
                     <BreadcrumbPage className="text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
@@ -92,8 +92,8 @@ export function Header() {
       
       {/* Actions - compact on mobile */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Theme Toggle - hide on very small screens */}
-        <div className="hidden xs:block">
+        {/* Theme Toggle - show from small screens up */}
+        <div className="hidden sm:block">
           <ThemeToggle />
         </div>
         

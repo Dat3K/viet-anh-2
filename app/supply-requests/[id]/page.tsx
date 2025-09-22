@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { RequestDetail } from '@/components/supply-requests/request-detail'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import type { ProcessRequestApprovalWithItemsRPCResult } from '@/types/database'
+import { useSupplyRequestDetail } from '@/hooks/use-supply-request-detail'
+import { useApprovalPermission } from '@/hooks/use-approval-permission'
 
 /**
  * Supply Request Detail Page
@@ -16,6 +18,15 @@ export default function SupplyRequestDetailPage() {
   const params = useParams()
   const router = useRouter()
   const requestId = params?.id as string
+
+  // Get request details and permissions
+  const { request, isOwnRequest } = useSupplyRequestDetail(requestId)
+  const { canApprove } = useApprovalPermission()
+
+  // Determine edit and action permissions based on request status
+  const isPendingRequest = request?.status === 'pending'
+  const allowItemEditing = isPendingRequest ? (isOwnRequest || canApprove) : canApprove
+  const showActions = isPendingRequest ? (isOwnRequest || canApprove) : canApprove
 
   if (!requestId) {
     return (
@@ -73,8 +84,8 @@ export default function SupplyRequestDetailPage() {
           requestId={requestId}
           mode="full"
           variant="page"
-          showActions={true}
-          allowItemEditing={true}
+          showActions={showActions}
+          allowItemEditing={allowItemEditing}
           onApprovalProcessed={handleApprovalProcessed}
         />
       </div>
