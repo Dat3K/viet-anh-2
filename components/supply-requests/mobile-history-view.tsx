@@ -36,11 +36,11 @@ export function MobileHistoryView({ data, isLoading, onView }: MobileHistoryView
     ],
     badgesExtractor: (item) => [
       {
-        content: <StatusBadge status={item.status as StatusType} />,
+        content: item.status ? <StatusBadge status={item.status as StatusType} /> : null,
         variant: undefined,
       },
       {
-        content: <PriorityBadge priority={item.priority as Priority} />,
+        content: item.priority ? <PriorityBadge priority={item.priority as Priority} /> : null,
         variant: undefined,
       },
     ],

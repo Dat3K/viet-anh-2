@@ -65,18 +65,25 @@ export function AppSidebar() {
     },
   ]
 
-  // Approval item (conditional)
-  const approvalItem = {
-    title: "Phê duyệt yêu cầu",
-    url: "/supply-requests/approve",
-    icon: CheckCircle,
-  }
+  // Approval items (conditional)
+  const approvalItems = canApprove ? [
+    {
+      title: "Phê duyệt yêu cầu",
+      url: "/supply-requests/approve",
+      icon: CheckCircle,
+    },
+    {
+      title: "Lịch sử phê duyệt",
+      url: "/supply-requests/approve/history",
+      icon: History,
+    }
+  ] : []
 
   // Combine items based on permissions
   const requestSubItems = [
     ...baseRequestItems,
-    // Only show approval item if user has permission
-    ...(canApprove ? [approvalItem] : [])
+    // Only show approval items if user has permission
+    ...approvalItems
   ]
 
   const isRequestsActive = pathname.startsWith('/supply-requests')

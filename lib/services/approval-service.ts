@@ -381,6 +381,99 @@ export class ApprovalService extends BaseService {
   }
 
   /**
+   * Get approved request history for current user with advanced filtering and pagination
+   * Follows established patterns with proper type safety and caching
+   */
+  async getApprovedRequestHistory(options: {
+    page?: number
+    pageSize?: number
+    status?: 'all' | 'approved' | 'rejected'
+    priority?: 'all' | 'low' | 'medium' | 'high' | 'urgent'
+    searchQuery?: string
+    dateFrom?: string
+    dateTo?: string
+    sortBy?: 'created_at' | 'updated_at' | 'approved_at' | 'status' | 'priority'
+    sortOrder?: 'asc' | 'desc'
+  } = {}): Promise<{
+    data: RequestApproval[]
+    totalCount: number
+    totalPages: number
+    currentPage: number
+  }> {
+    try {
+      const user = await this.getCurrentUser()
+
+      // Build base query
+      let query = this.supabase
+        .from('request_approvals')
+        .select(`
+          *,
+          request:requests!request_id(
+            id,
+            title,
+            status,
+            priority,
+            created_at,
+            request_number,
+            request_types!inner(name, display_name)
+          ),
+          step:approval_steps!step_id(step_name, step_order),
+          approver:profiles!approver_id(full_name, email)
+        `, { count: 'exact' })
+        .eq('approver_id', user.id)
+        .order(options.sortBy || 'approved_at', { ascending: options.sortOrder === 'asc' })
+
+      // Apply filters
+      if (options.status && options.status !== 'all') {
+        query = query.eq('status', options.status)
+      }
+
+      if (options.searchQuery?.trim()) {
+        const search = options.searchQuery.trim()
+        query = query.ilike('request.title', `%${search}%`)
+      }
+
+      if (options.dateFrom) {
+        query = query.gte('approved_at', options.dateFrom)
+      }
+
+      if (options.dateTo) {
+        query = query.lte('approved_at', options.dateTo)
+      }
+
+      // Apply pagination
+      const page = options.page || 1
+      const pageSize = options.pageSize || 20
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+
+      query = query.range(from, to)
+
+      const { data, error, count } = await query
+
+      if (error) throw error
+
+      const totalCount = count || 0
+      const totalPages = Math.ceil(totalCount / pageSize)
+
+      return {
+        data: data || [],
+        totalCount,
+        totalPages,
+        currentPage: page
+      }
+    } catch (error) {
+      this.handleError(error, 'ApprovalService.getApprovedRequestHistory')
+      return {
+        data: [],
+        totalCount: 0,
+        totalPages: 0,
+        currentPage: options.page || 1
+      }
+    }
+  }
+
+  /**
    * Get pending approvals count for current user
    */
   async getPendingApprovalsCount(

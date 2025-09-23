@@ -15,6 +15,7 @@ const pathMap: Record<string, string> = {
   '/supply-requests/create': 'Tạo yêu cầu',
   '/supply-requests/history': 'Lịch sử yêu cầu',
   '/supply-requests/approve': 'Phê duyệt yêu cầu',
+  '/supply-requests/approve/history': 'Lịch sử phê duyệt',
   '/students': 'Quản lý học sinh',
   '/schedule': 'Thời khóa biểu',
   '/materials': 'Tài liệu giảng dạy',

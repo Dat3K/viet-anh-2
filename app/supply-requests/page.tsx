@@ -47,6 +47,15 @@ const menuItems = [
     iconColor: 'text-orange-600',
     bgColor: 'bg-orange-50 hover:bg-orange-100 dark:bg-orange-950 dark:hover:bg-orange-900',
     borderColor: 'border-orange-200 dark:border-orange-800'
+  },
+  {
+    title: 'Lịch sử phê duyệt',
+    description: 'Xem lại các yêu cầu đã được phê duyệt trước đó',
+    href: '/supply-requests/approve/history',
+    icon: History,
+    iconColor: 'text-purple-600',
+    bgColor: 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950 dark:hover:bg-purple-900',
+    borderColor: 'border-purple-200 dark:border-purple-800'
   }
 ]
 
@@ -239,7 +248,7 @@ export default function SupplyRequestsMenuPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <Button 
                 onClick={() => handleNavigate('/supply-requests/create')}
                 className="justify-start h-auto p-3 sm:p-4 bg-primary hover:bg-primary/90"
@@ -266,12 +275,24 @@ export default function SupplyRequestsMenuPage() {
               <Button 
                 onClick={() => handleNavigate('/supply-requests/approve')}
                 variant="outline"
-                className="justify-start h-auto p-3 sm:p-4 hover:bg-muted sm:col-span-2 lg:col-span-1"
+                className="justify-start h-auto p-3 sm:p-4 hover:bg-muted"
               >
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
                 <div className="text-left">
                   <div className="font-medium text-sm sm:text-base">Phê duyệt</div>
                   <div className="text-xs text-muted-foreground">Xem xét yêu cầu</div>
+                </div>
+              </Button>
+
+              <Button 
+                onClick={() => handleNavigate('/supply-requests/approve/history')}
+                variant="outline"
+                className="justify-start h-auto p-3 sm:p-4 hover:bg-muted"
+              >
+                <History className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
+                <div className="text-left">
+                  <div className="font-medium text-sm sm:text-base">Lịch sử phê duyệt</div>
+                  <div className="text-xs text-muted-foreground">Xem yêu cầu đã duyệt</div>
                 </div>
               </Button>
             </div>
