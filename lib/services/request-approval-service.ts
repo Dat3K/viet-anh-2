@@ -1,7 +1,7 @@
 import { BaseService } from './base-service'
 import type {
   PendingApprovalRequest,
-  RequestApprovalWithDetails,
+  ApprovalHistoryEntry,
   RequestWithDetails,
   ProcessRequestApprovalWithItemsRPCArgs,
   ProcessRequestApprovalWithItemsRPCResult,
@@ -107,7 +107,7 @@ export class RequestApprovalService extends BaseService {
   /**
    * Get approval history for a request
    */
-  async getApprovalHistory(requestId: string): Promise<RequestApprovalWithDetails[]> {
+  async getApprovalHistory(requestId: string): Promise<ApprovalHistoryEntry[]> {
     try {
       const { data, error } = await this.supabase
         .from('request_approvals')

@@ -12,6 +12,11 @@ import type {
   RequestItem,
   ProcessRequestApprovalWithItemsRPCArgs,
   ProcessRequestApprovalWithItemsRPCResult,
+  GetApprovedRequestsByApproverRPCArgs,
+  GetApprovedRequestsByApproverRPCResult,
+  ApprovalHistoryEntry,
+  ApprovalHistoryPagination,
+  ApprovalHistoryFilters,
 } from '@/types/database'
 
 /**
@@ -365,10 +370,13 @@ export class ApprovalService extends BaseService {
             id,
             title,
             status,
+            priority,
             created_at,
-            request_types!inner(name, display_name)
+            request_number,
+            request_types(name, display_name)
           ),
-          step:approval_steps!step_id(step_name, step_order)
+          step:approval_steps!step_id(step_name, step_order),
+          approver:profiles!approver_id(full_name, email)
         `)
         .eq('approver_id', currentUserId)
         .order('approved_at', { ascending: false })
@@ -381,94 +389,87 @@ export class ApprovalService extends BaseService {
   }
 
   /**
-   * Get approved request history for current user with advanced filtering and pagination
-   * Follows established patterns with proper type safety and caching
+   * Get approved requests history for current user using RPC function
+   * This method uses the get_approved_requests_by_approver RPC function for better performance
+   * and more advanced filtering capabilities
    */
-  async getApprovedRequestHistory(options: {
+  async getApprovedRequestsByApprover(options: {
     page?: number
     pageSize?: number
-    status?: 'all' | 'approved' | 'rejected'
-    priority?: 'all' | 'low' | 'medium' | 'high' | 'urgent'
-    searchQuery?: string
-    dateFrom?: string
-    dateTo?: string
-    sortBy?: 'created_at' | 'updated_at' | 'approved_at' | 'status' | 'priority'
-    sortOrder?: 'asc' | 'desc'
+    status?: string | null
+    priority?: string | null
+    searchQuery?: string | null
+    dateFrom?: string | null
+    dateTo?: string | null
+    sortBy?: string
+    sortOrder?: string
   } = {}): Promise<{
-    data: RequestApproval[]
-    totalCount: number
-    totalPages: number
-    currentPage: number
+    data: ApprovalHistoryEntry[]
+    pagination: ApprovalHistoryPagination
+    filters: ApprovalHistoryFilters
   }> {
     try {
       const user = await this.getCurrentUser()
 
-      // Build base query
-      let query = this.supabase
-        .from('request_approvals')
-        .select(`
-          *,
-          request:requests!request_id(
-            id,
-            title,
-            status,
-            priority,
-            created_at,
-            request_number,
-            request_types!inner(name, display_name)
-          ),
-          step:approval_steps!step_id(step_name, step_order),
-          approver:profiles!approver_id(full_name, email)
-        `, { count: 'exact' })
-        .eq('approver_id', user.id)
-        .order(options.sortBy || 'approved_at', { ascending: options.sortOrder === 'asc' })
-
-      // Apply filters
-      if (options.status && options.status !== 'all') {
-        query = query.eq('status', options.status)
+      // Prepare filters object
+      const filters: ApprovalHistoryFilters = {
+        status: options.status ?? null,
+        priority: options.priority ?? null,
+        searchQuery: options.searchQuery ?? null,
+        dateFrom: options.dateFrom ?? null,
+        dateTo: options.dateTo ?? null,
+        sortBy: options.sortBy ?? 'approved_at',
+        sortOrder: options.sortOrder ?? 'desc'
       }
 
-      if (options.searchQuery?.trim()) {
-        const search = options.searchQuery.trim()
-        query = query.ilike('request.title', `%${search}%`)
+      // Prepare RPC arguments
+      const rpcArgs: GetApprovedRequestsByApproverRPCArgs = {
+        p_approver_id: user.id,
+        p_filters: JSON.stringify(filters)
       }
 
-      if (options.dateFrom) {
-        query = query.gte('approved_at', options.dateFrom)
+      // Call the RPC function
+      const { data, error } = await this.supabase
+        .rpc('get_approved_requests_by_approver', rpcArgs)
+
+      if (error) {
+        console.error('Error calling get_approved_requests_by_approver RPC:', error)
+        throw error
       }
 
-      if (options.dateTo) {
-        query = query.lte('approved_at', options.dateTo)
+      // Extract result from RPC response
+      const result: GetApprovedRequestsByApproverRPCResult = Array.isArray(data) ? data[0] : data
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to get approved requests history')
       }
-
-      // Apply pagination
-      const page = options.page || 1
-      const pageSize = options.pageSize || 20
-      const from = (page - 1) * pageSize
-      const to = from + pageSize - 1
-
-      query = query.range(from, to)
-
-      const { data, error, count } = await query
-
-      if (error) throw error
-
-      const totalCount = count || 0
-      const totalPages = Math.ceil(totalCount / pageSize)
 
       return {
-        data: data || [],
-        totalCount,
-        totalPages,
-        currentPage: page
+        data: result.data || [],
+        pagination: result.pagination,
+        filters: result.filters
       }
     } catch (error) {
-      this.handleError(error, 'ApprovalService.getApprovedRequestHistory')
+      this.handleError(error, 'ApprovalService.getApprovedRequestsByApprover')
       return {
         data: [],
-        totalCount: 0,
-        totalPages: 0,
-        currentPage: options.page || 1
+        pagination: {
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: options.page || 1,
+          pageSize: options.pageSize || 20,
+          hasNextPage: false,
+          hasPreviousPage: false
+        },
+        filters: {
+          status: options.status ?? null,
+          priority: options.priority ?? null,
+          searchQuery: options.searchQuery ?? null,
+          dateFrom: options.dateFrom ?? null,
+          dateTo: options.dateTo ?? null,
+          sortBy: options.sortBy ?? 'approved_at',
+          sortOrder: options.sortOrder ?? 'desc'
+        }
       }
     }
   }

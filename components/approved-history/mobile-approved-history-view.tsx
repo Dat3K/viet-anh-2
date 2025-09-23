@@ -6,34 +6,10 @@ import { Eye, Calendar, User } from "lucide-react"
 import { MobileDataView, useTableToMobileData } from "@/components/ui/mobile-data-view"
 import { StatusBadge, type StatusType } from "@/components/ui/status-badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
-import type { RequestApproval } from "@/types/database"
-
-// Define extended type for approved requests with related data
-export interface RequestApprovalWithDetails extends RequestApproval {
-  request?: {
-    id: string
-    title: string
-    status: string
-    priority: string
-    created_at: string
-    request_number: string
-    request_types?: {
-      name: string
-      display_name: string
-    }
-  }
-  step?: {
-    step_name: string
-    step_order: number
-  }
-  approver?: {
-    full_name: string
-    email: string
-  }
-}
+import type { ApprovalHistoryEntry } from '@/types/database'
 
 interface MobileApprovedHistoryViewProps {
-  data: RequestApprovalWithDetails[]
+  data: ApprovalHistoryEntry[]
   isLoading?: boolean
   onView: (id: string) => void
 }

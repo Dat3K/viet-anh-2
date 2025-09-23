@@ -14,37 +14,12 @@ import { StatusBadge, type StatusType } from '@/components/ui/status-badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import type { RequestApproval } from '@/types/database'
+import type { ApprovalHistoryEntry, Priority } from '@/types/database'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { Priority } from '@/types/database'
-
-// Define extended type for approved requests with related data
-export interface RequestApprovalWithDetails extends RequestApproval {
-  request?: {
-    id: string
-    title: string
-    status: string
-    priority: string
-    created_at: string
-    request_number: string
-    request_types?: {
-      name: string
-      display_name: string
-    }
-  }
-  step?: {
-    step_name: string
-    step_order: number
-  }
-  approver?: {
-    full_name: string
-    email: string
-  }
-}
 
 interface ApprovedRequestsTableProps {
   className?: string
-  requests?: RequestApprovalWithDetails[]
+  requests?: ApprovalHistoryEntry[]
   isLoading?: boolean
   isError?: boolean
   onRetry?: () => void

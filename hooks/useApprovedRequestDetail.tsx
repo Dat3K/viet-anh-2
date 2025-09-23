@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import type { RequestApprovalWithDetails } from '@/types/database'
+import type { ApprovalHistoryEntry } from '@/types/database'
 import { useAuth } from './use-auth'
 import { approvalService } from '@/lib/services/approval-service'
 
@@ -9,7 +9,7 @@ import { approvalService } from '@/lib/services/approval-service'
 export const approvedRequestDetailKeys = {
   all: ['approved-request-detail'] as const,
   details: () => [...approvedRequestDetailKeys.all, 'detail'] as const,
- detail: (id: string) => [...approvedRequestDetailKeys.details(), id] as const,
+  detail: (id: string) => [...approvedRequestDetailKeys.details(), id] as const,
 }
 
 /**
@@ -18,7 +18,7 @@ export const approvedRequestDetailKeys = {
 export function useApprovedRequestDetail(id: string) {
   const { user } = useAuth()
 
-  return useQuery<RequestApprovalWithDetails | null>({
+  return useQuery<ApprovalHistoryEntry | null>({
     queryKey: approvedRequestDetailKeys.detail(id),
     queryFn: async () => {
       if (!id) return null
@@ -27,8 +27,11 @@ export function useApprovedRequestDetail(id: string) {
       const startTime = performance.now()
       
       // Get all approved requests and filter by ID
-      const allApproved = await approvalService.getApprovedByUser(user?.id)
-      const result = allApproved?.find(approval => approval.id === id) || null
+      const approvedResult = await approvalService.getApprovedRequestsByApprover({ 
+        page: 1, 
+        pageSize: 1000 // Get a large batch to find the specific request
+      })
+      const result = approvedResult.data?.find(approval => approval.id === id) || null
       
       const endTime = performance.now()
       console.log(`Fetched approved request detail in ${endTime - startTime}ms`)

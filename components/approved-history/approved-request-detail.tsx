@@ -1,4 +1,5 @@
 import React from 'react'
+import type { RequestItem, ApprovalHistoryEntry } from '@/types/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -27,7 +28,11 @@ interface ApprovedRequestDetailProps {
 }
 
 export function ApprovedRequestDetail({ className, requestId = TEST_REQUEST_ID }: ApprovedRequestDetailProps) {
-  const { request, approvalHistory, isLoading, isError } = useApprovedRequestDetail(requestId)
+  const { data: requestApproval, isLoading, isError } = useApprovedRequestDetail(requestId)
+  
+  // Extract request and approval history from the query result
+  const request = requestApproval?.request
+  const approvalHistory = requestApproval ? [requestApproval] : []
 
   if (isLoading) {
     return (
@@ -169,23 +174,25 @@ export function ApprovedRequestDetail({ className, requestId = TEST_REQUEST_ID }
   }
 
   // Extract data from request and approval history
-  const requestNumber = request.request_number || 'N/A'
-  const title = request.title || 'N/A'
-  const status = request.status as any
-  const priority = request.priority as any
-  const createdAt = request.created_at ? new Date(request.created_at) : new Date()
+  const requestNumber = request?.request_number || 'N/A'
+  const title = request?.title || 'N/A'
+  const status = request?.status as any
+  const priority = request?.priority as any
+  const createdAt = request?.created_at ? new Date(request.created_at) : new Date()
   // Note: We don't have requester details in the current data structure
   const requester = 'N/A'
   const department = 'N/A'
-  const purpose = typeof request.payload === 'object' && request.payload !== null ?
+  const purpose = typeof request?.payload === 'object' && request?.payload !== null ?
     (request.payload as any).purpose || 'N/A' : 'N/A'
-  const requestedDate = typeof request.payload === 'object' && request.payload !== null ?
+  const requestedDate = typeof request?.payload === 'object' && request?.payload !== null ?
     (request.payload as any).requestedDate || 'N/A' : 'N/A'
-  const items = request.items || []
+  // Note: The current API doesn't fetch request_items, so we'll use empty array for now
+  // TODO: Update the API to include request_items or fetch them separately
+  const items: RequestItem[] = []
   
   // For approvedAt, we'll use the latest approval date
   const approvedAt = approvalHistory && approvalHistory.length > 0 ?
-    new Date(approvalHistory[approvalHistory.length - 1].approved_at || '') : new Date()
+    new Date(approvalHistory[approvalHistory.length - 1]?.approved_at || '') : new Date()
 
   return (
     <div className={`space-y-6 ${className || ''}`}>
@@ -277,32 +284,40 @@ export function ApprovedRequestDetail({ className, requestId = TEST_REQUEST_ID }
         </CardHeader>
         
         <CardContent>
-          <div className="space-y-4">
-            {items.map((item) => (
-              <Card key={item.id} className="hover:bg-muted/20 transition-colors">
-                <CardContent className="pt-4">
-                  <div className="grid gap-2 md:grid-cols-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Tên vật tư</label>
-                      <p className="font-medium">{item.name}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-xs text-muted-foreground">Số lượng</label>
-                      <p className="font-medium">{item.quantity} {item.unit}</p>
-                    </div>
-                    
-                    {item.notes && (
+          {items.length > 0 ? (
+            <div className="space-y-4">
+              {items.map((item: RequestItem) => (
+                <Card key={item.id} className="hover:bg-muted/20 transition-colors">
+                  <CardContent className="pt-4">
+                    <div className="grid gap-2 md:grid-cols-3">
                       <div>
-                        <label className="text-xs text-muted-foreground">Ghi chú</label>
-                        <p className="text-sm text-muted-foreground">{item.notes}</p>
+                        <label className="text-xs text-muted-foreground">Tên vật tư</label>
+                        <p className="font-medium">{item.item_name}</p>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      
+                      <div>
+                        <label className="text-xs text-muted-foreground">Số lượng</label>
+                        <p className="font-medium">{item.quantity} {item.unit || 'đơn vị'}</p>
+                      </div>
+                      
+                      {item.description && (
+                        <div>
+                          <label className="text-xs text-muted-foreground">Ghi chú</label>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                Chi tiết vật tư chưa được tải. Vui lòng liên hệ IT để cải thiện tính năng này.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -317,7 +332,7 @@ export function ApprovedRequestDetail({ className, requestId = TEST_REQUEST_ID }
         
         <CardContent>
           <div className="space-y-4">
-            {approvalHistory?.map((approval) => (
+            {approvalHistory?.map((approval: ApprovalHistoryEntry) => (
               <div key={approval.id} className="flex items-start gap-4">
                 <div className="mt-1">
                   {approval.status === 'approved' ? (

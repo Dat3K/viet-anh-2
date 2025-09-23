@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import type { RequestApprovalWithDetails } from '@/types/database'
+import type { ApprovalHistoryEntry } from '@/types/database'
 import { useAuth } from './use-auth'
 import { approvalService } from '@/lib/services/approval-service'
 
@@ -18,16 +18,19 @@ export const approvedHistoryKeys = {
 export function useApprovedHistory() {
   const { user } = useAuth()
 
-  return useQuery<RequestApprovalWithDetails[]>({
+  return useQuery<ApprovalHistoryEntry[]>({
     queryKey: approvedHistoryKeys.list(user?.id || ''),
     queryFn: async () => {
       console.log('Fetching approved history for user:', user?.id)
       const startTime = performance.now()
-      const result = await approvalService.getApprovedByUser()
+      const result = await approvalService.getApprovedRequestsByApprover({ 
+        page: 1, 
+        pageSize: 1000 // Get all results for this user
+      })
       const endTime = performance.now()
       console.log(`Fetched approved history in ${endTime - startTime}ms`)
       // Service returns data directly or undefined on error
-      return result || []
+      return result?.data || []
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes

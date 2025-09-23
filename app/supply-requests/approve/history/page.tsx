@@ -31,15 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { StatusBadge, getStatusOptions } from "@/components/ui/status-badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { PriorityBadge, getPriorityOptions } from "@/components/ui/priority-badge"
 import { DatePicker } from "@/components/ui/date-picker"
 import { 
@@ -65,14 +57,14 @@ import { format, startOfMonth, endOfMonth } from "date-fns"
 import { vi } from "date-fns/locale"
 import type { RequestApproval } from "@/types/database"
 import type { StatusType } from "@/components/ui/status-badge"
-import { useApprovedRequestHistory, type RequestApprovalWithDetails } from "@/hooks/useApprovedRequestHistory"
+import { useApprovedRequestHistory } from "@/hooks/useApprovedRequestHistory"
+import type { ApprovalHistoryEntry } from "@/types/database"
 import { useBreakpoint } from "@/hooks/use-mobile"
 import { ApprovedRequestsTable } from "@/components/approved-history/approved-requests-table"
-import { MobileApprovedHistoryView } from "@/components/approved-history/mobile-approved-history-view"
 
 
 // Mobile Card Component for better mobile UX
-function MobileRequestCard({ request, onView }: { request: RequestApprovalWithDetails, onView: (id: string) => void }) {
+function MobileRequestCard({ request, onView }: { request: ApprovalHistoryEntry, onView: (id: string) => void }) {
   return (
     <Card className="mb-3">
       <CardContent className="p-4">
@@ -100,7 +92,7 @@ function MobileRequestCard({ request, onView }: { request: RequestApprovalWithDe
         
         <div className="flex flex-wrap gap-2 mb-3">
           <StatusBadge status={request.status as StatusType} />
-          {request.request?.priority && <PriorityBadge priority={request.request.priority as any} />}
+          {request.request?.priority && <PriorityBadge priority={request.request.priority as 'low' | 'medium' | 'high' | 'urgent'} />}
           <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
             <User className="h-3 w-3" />
             {request.approver?.full_name || 'N/A'}
@@ -167,7 +159,7 @@ export default function ApprovedHistoryPage() {
   }, [router])
 
   // Table columns definition with proper typing
-  const columns = useMemo<ColumnDef<RequestApprovalWithDetails, unknown>[]>(() => [
+  const columns = useMemo<ColumnDef<ApprovalHistoryEntry, unknown>[]>(() => [
     {
       id: 'request_number',
       accessorKey: 'request.request_number',
@@ -264,7 +256,7 @@ export default function ApprovedHistoryPage() {
       ),
       cell: ({ getValue }) => {
         const priority = getValue() as string
-        return priority ? <PriorityBadge priority={priority as any} /> : null
+        return priority ? <PriorityBadge priority={priority as 'low' | 'medium' | 'high' | 'urgent'} /> : null
       },
       enableSorting: true,
     },

@@ -95,6 +95,7 @@ export function RequestDetail({
     updateItem,
     isUpdatingItem,
     isProcessingApproval,
+    processApproval,
     refetch
   } = useSupplyRequestDetail(requestId)
 
@@ -171,18 +172,29 @@ export function RequestDetail({
 
   const handleApproval = async (action: 'approve' | 'reject') => {
     try {
+      // Call the actual processApproval mutation from the hook
+      processApproval({ 
+        action, 
+        comments: approvalComments.trim() || undefined 
+      })
+      
+      // Reset dialog state
       setShowApprovalDialog(null)
       setApprovalComments('')
       
-      // Create mock result to satisfy callback type
-      const mockResult: ProcessRequestApprovalWithItemsRPCResult = {
-        success: true,
-        new_status: action === 'approve' ? 'approved' : 'rejected',
-        message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`
+      // Call the callback if provided with a proper result structure
+      if (onApprovalProcessed) {
+        // The mutation will handle success/error toasts, so we just notify the parent
+        const result: ProcessRequestApprovalWithItemsRPCResult = {
+          success: true,
+          new_status: action === 'approve' ? 'approved' : 'rejected',
+          message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`
+        }
+        onApprovalProcessed(action, result)
       }
-      onApprovalProcessed?.(action, mockResult)
     } catch (error) {
       console.error('Error processing approval:', error)
+      // Error handling is already done in the mutation's onError callback
     }
   }
 

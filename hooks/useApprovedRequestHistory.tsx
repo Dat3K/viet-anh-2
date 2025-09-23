@@ -1,34 +1,10 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import type { RequestApproval } from '@/types/database'
+import type { ApprovalHistoryEntry } from '@/types/database'
 import { useAuth } from './use-auth'
 import { approvalService } from '@/lib/services/approval-service'
 import { useMemo } from 'react'
-
-// Define extended type for approved requests with related data
-export interface RequestApprovalWithDetails extends RequestApproval {
-  request?: {
-    id: string
-    title: string
-    status: string
-    priority: string
-    created_at: string
-    request_number: string
-    request_types?: {
-      name: string
-      display_name: string
-    }
-  }
-  step?: {
-    step_name: string
-    step_order: number
-  }
-  approver?: {
-    full_name: string
-    email: string
-  }
-}
 
 // Optimized Query keys with hierarchical structure
 export const approvedRequestKeys = {
@@ -40,9 +16,9 @@ export const approvedRequestKeys = {
 }
 
 /**
- * Hook to fetch approved request history with advanced filtering and pagination
- * Follows established patterns with proper type safety and caching
- */
+ * Hook to fetch approved request history using the new getApprovedRequestsByApprover RPC function
+ * Provides better performance and more advanced filtering capabilities
+*/
 export function useApprovedRequestHistory(options: {
   page?: number
   pageSize?: number
@@ -66,8 +42,14 @@ export function useApprovedRequestHistory(options: {
   return useQuery({
     queryKey,
     queryFn: async () => {
-      const result = await approvalService.getApprovedRequestHistory(options)
-      return result
+      const result = await approvalService.getApprovedRequestsByApprover(options)
+      // Transform the result to match the expected format
+      return {
+        data: result.data,
+        totalCount: result.pagination.totalCount,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage
+      }
     },
     enabled: !!user?.id,
     staleTime: 3 * 60 * 1000, // 3 minutes - slightly less than regular requests for history freshness

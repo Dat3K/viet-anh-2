@@ -86,11 +86,6 @@ export type ApprovalStepWithDetails = ApprovalStep & {
   workflow?: ApprovalWorkflow
 }
 
-export type RequestApprovalWithDetails = RequestApproval & {
-  approver?: Profile
-  step?: ApprovalStep
-  request?: Request
-}
 
 // =============================================================================
 // Extended Service Types
@@ -190,6 +185,84 @@ export interface GetSupplyRequestHistoryRPCResult {
   total_pages: number
   current_page: number
   page_size: number
+}
+
+// Get Approved Requests by Approver RPC Types
+export interface GetApprovedRequestsByApproverRPCArgs {
+  p_approver_id: string
+  p_filters?: string // JSON string with filters
+}
+
+export interface ApprovalHistoryRequestItem {
+  id: string
+  item_name: string
+  quantity: number | null
+  unit: string | null
+  description: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface ApprovalHistoryRequestDetails {
+  id: string
+  title: string
+  status: string | null
+  priority: string | null
+  request_number: string
+  created_at: string | null
+  updated_at: string | null
+  completed_at: string | null
+  payload: any // JSON payload
+  requested_date: string | null
+  due_date: string | null
+}
+
+export interface ApprovalHistoryEntry {
+  // Request approval fields
+  id: string
+  status: string
+  comments: string | null
+  approved_at: string | null
+  created_at: string | null
+  request_id: string
+  step_id: string
+  approver_id: string
+  
+  // Related data
+  request: ApprovalHistoryRequestDetails
+  request_type: Pick<RequestType, 'id' | 'name' | 'display_name' | 'description'>
+  requester: Pick<Profile, 'id' | 'full_name' | 'email' | 'employee_code'>
+  approver: Pick<Profile, 'id' | 'full_name' | 'email' | 'employee_code'>
+  step: Pick<ApprovalStep, 'id' | 'step_name' | 'step_order' | 'is_required'>
+  items: ApprovalHistoryRequestItem[]
+}
+
+export interface ApprovalHistoryPagination {
+  totalCount: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+export interface ApprovalHistoryFilters {
+  status?: string | null
+  priority?: string | null
+  searchQuery?: string | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  sortBy?: string
+  sortOrder?: string
+}
+
+export interface GetApprovedRequestsByApproverRPCResult {
+  success: boolean
+  message?: string
+  error_code?: string
+  data: ApprovalHistoryEntry[]
+  pagination: ApprovalHistoryPagination
+  filters: ApprovalHistoryFilters
 }
 
 // Process Request Approval with Items RPC Types
