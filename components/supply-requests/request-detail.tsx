@@ -20,12 +20,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StatusBadge, type StatusType } from '@/components/ui/status-badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
 import { 
-  Dialog, 
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+  DialogTitle
 } from '@/components/ui/dialog'
 import {
   Loader2,
@@ -38,7 +36,6 @@ import {
   FileText,
   AlertCircle,
   RefreshCw,
-  MessageSquare,
   CheckCircle,
   XCircle,
   Copy,
@@ -496,72 +493,6 @@ export function RequestDetail({
         </Card>
       )}
 
-      {/* Actions Section */}
-      {effectiveShowActions && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Phê duyệt yêu cầu
-            </CardTitle>
-            <CardDescription>
-              Xem xét và đưa ra quyết định cho yêu cầu này
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <Dialog 
-                open={showApprovalDialog === 'approve'} 
-                onOpenChange={(open) => !open && setShowApprovalDialog(null)}
-              >
-                <DialogTrigger asChild>
-                  <Button 
-                    onClick={() => setShowApprovalDialog('approve')}
-                    disabled={isProcessingApproval}
-                    className="flex-1"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Phê duyệt
-                  </Button>
-                </DialogTrigger>
-                <ApprovalDialog
-                  action="approve"
-                  comments={approvalComments}
-                  onCommentsChange={setApprovalComments}
-                  onConfirm={() => handleApproval('approve')}
-                  isProcessing={isProcessingApproval}
-                />
-              </Dialog>
-
-              <Dialog 
-                open={showApprovalDialog === 'reject'} 
-                onOpenChange={(open) => !open && setShowApprovalDialog(null)}
-              >
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="destructive"
-                    onClick={() => setShowApprovalDialog('reject')}
-                    disabled={isProcessingApproval}
-                    className="flex-1"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Từ chối
-                  </Button>
-                </DialogTrigger>
-                <ApprovalDialog
-                  action="reject"
-                  comments={approvalComments}
-                  onCommentsChange={setApprovalComments}
-                  onConfirm={() => handleApproval('reject')}
-                  isProcessing={isProcessingApproval}
-                />
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Custom Footer */}
       {footerContent && (
         <div>
@@ -715,84 +646,6 @@ function ItemRow({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-// Approval dialog component
-interface ApprovalDialogProps {
-  action: 'approve' | 'reject'
-  comments: string
-  onCommentsChange: (comments: string) => void
-  onConfirm: () => void
-  isProcessing: boolean
-}
-
-function ApprovalDialog({
-  action,
-  comments,
-  onCommentsChange,
-  onConfirm,
-  isProcessing
-}: ApprovalDialogProps) {
-  const actionConfig = {
-    approve: {
-      title: 'Phê duyệt yêu cầu',
-      description: 'Bạn có chắc chắn muốn phê duyệt yêu cầu này?',
-      buttonLabel: 'Phê duyệt',
-      buttonVariant: 'default' as const
-    },
-    reject: {
-      title: 'Từ chối yêu cầu', 
-      description: 'Bạn có chắc chắn muốn từ chối yêu cầu này?',
-      buttonLabel: 'Từ chối',
-      buttonVariant: 'destructive' as const
-    }
-  }
-
-  const config = actionConfig[action]
-
-  return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{config.title}</DialogTitle>
-        <DialogDescription>
-          {config.description}
-        </DialogDescription>
-      </DialogHeader>
-      
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="approval-comments">
-            Nhận xét {action === 'reject' ? '(bắt buộc)' : '(tùy chọn)'}
-          </Label>
-          <Textarea
-            id="approval-comments"
-            value={comments}
-            onChange={(e) => onCommentsChange(e.target.value)}
-            placeholder={`Nhập nhận xét về quyết định ${action === 'approve' ? 'phê duyệt' : 'từ chối'}...`}
-            className="mt-2"
-            rows={3}
-          />
-        </div>
-        
-        <div className="flex gap-3 justify-end">
-          <Button
-            variant={config.buttonVariant}
-            onClick={onConfirm}
-            disabled={isProcessing || (action === 'reject' && !comments.trim())}
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : action === 'approve' ? (
-              <CheckCircle className="h-4 w-4 mr-2" />
-            ) : (
-              <XCircle className="h-4 w-4 mr-2" />
-            )}
-            {config.buttonLabel}
-          </Button>
-        </div>
-      </div>
-    </DialogContent>
   )
 }
 

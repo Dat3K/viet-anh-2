@@ -36,7 +36,6 @@ import { PriorityBadge, getPriorityOptions } from "@/components/ui/priority-badg
 import { DatePicker } from "@/components/ui/date-picker"
 import { 
   Loader2, 
-  Eye, 
   RefreshCw, 
   AlertCircle, 
   Search,
@@ -65,6 +64,8 @@ import { ApprovedRequestsTable } from "@/components/approved-history/approved-re
 
 // Mobile Card Component for better mobile UX
 function MobileRequestCard({ request, onView }: { request: ApprovalHistoryEntry, onView: (id: string) => void }) {
+  const requestId = request.request?.id
+
   return (
     <Card className="mb-3">
       <CardContent className="p-4">
@@ -72,7 +73,7 @@ function MobileRequestCard({ request, onView }: { request: ApprovalHistoryEntry,
           <div className="flex-1 min-w-0">
             <h3 
               className="font-medium text-sm leading-tight cursor-pointer hover:text-primary line-clamp-2"
-              onClick={() => onView(request.id)}
+              onClick={() => requestId && onView(requestId)}
             >
               {request.request?.title || 'N/A'}
             </h3>
@@ -81,12 +82,13 @@ function MobileRequestCard({ request, onView }: { request: ApprovalHistoryEntry,
             </p>
           </div>
           <Button
-            variant="outline"
+            variant="link"
             size="sm"
-            onClick={() => onView(request.id)}
-            className="ml-2 h-8 px-2 flex-shrink-0"
+            onClick={() => requestId && onView(requestId)}
+            className="ml-2 h-auto px-0 text-xs font-medium"
+            disabled={!requestId}
           >
-            <Eye className="h-3 w-3" />
+            Xem
           </Button>
         </div>
         
@@ -155,7 +157,8 @@ export default function ApprovedHistoryPage() {
   } = useApprovedRequestHistory(queryOptions)
 
   const handleView = useCallback((requestId: string) => {
-    router.push(`/supply-requests/approve/history/${requestId}`)
+    if (!requestId) return
+    router.push(`/supply-requests/${requestId}`)
   }, [router])
 
   // Table columns definition with proper typing
@@ -344,13 +347,13 @@ export default function ApprovedHistoryPage() {
       cell: ({ row }) => (
         <div className="min-w-[80px]">
           <Button
-            variant="outline"
+            variant="link"
             size="sm"
-            onClick={() => handleView(row.original.id)}
-            className="h-7 sm:h-8 px-2 sm:px-3"
+            onClick={() => handleView(row.original.request?.id ?? "")}
+            className="h-auto px-0 text-xs sm:text-sm font-medium"
+            disabled={!row.original.request?.id}
           >
-            <Eye className="h-3 w-3 sm:mr-1" />
-            <span className="hidden sm:inline">Xem</span>
+            Xem
           </Button>
         </div>
       ),

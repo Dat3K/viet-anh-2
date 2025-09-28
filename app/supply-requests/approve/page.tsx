@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
 import { AppLayout } from "@/components/layout/app-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +24,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
-import { Loader2, Check, X, Eye, RefreshCw, AlertCircle } from "lucide-react"
+import { Loader2, Check, X, RefreshCw, AlertCircle, Pencil, ChevronDown } from "lucide-react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { toast } from "sonner"
@@ -33,7 +32,6 @@ import type { SupplyRequestWithItems } from "@/types/database"
 import { usePendingApprovalRequests, useProcessApproval, useUpdateSupplyRequestItem, useSupplyRequestRealtime } from "@/hooks/use-supply-requests"
 
 export default function ApproveSupplyRequestsPage() {
-  const router = useRouter()
 
   const { data: pending = [], isLoading, isRefetching, error, refetch } = usePendingApprovalRequests()
   const processApproval = useProcessApproval()
@@ -92,10 +90,6 @@ export default function ApproveSupplyRequestsPage() {
       const message = err instanceof Error ? err.message : "Không thể xử lý phê duyệt"
       toast.error(message)
     }
-  }
-
-  const handleView = (requestId: string) => {
-    router.push(`/supply-requests/${requestId}`)
   }
 
   if (error) {
@@ -198,9 +192,9 @@ export default function ApproveSupplyRequestsPage() {
                 <div key={request.id} className="rounded-md border">
                   <Collapsible>
                     <div className="grid gap-4 p-4 lg:grid-cols-[2fr_auto_auto] md:grid-cols-1 items-start">
-                      {/* Request Info Column - Expandable trigger */}
-                      <CollapsibleTrigger asChild>
-                        <div className="cursor-pointer select-none space-y-2">
+                      {/* Request Info Column */}
+                      <div className="select-none space-y-3">
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                               {request.request_number}
@@ -221,7 +215,30 @@ export default function ApproveSupplyRequestsPage() {
                             )}
                           </div>
                         </div>
-                      </CollapsibleTrigger>
+
+                        {request.items?.length ? (
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              Danh sách vật tư
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {request.items.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-xs"
+                                >
+                                  <span className="font-medium">{item.name}</span>
+                                  <span className="text-muted-foreground">
+                                    · {Number(item.quantity) || 0} {item.unit || ""}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">Không có vật tư nào.</div>
+                        )}
+                      </div>
 
                       {/* Badges Column */}
                       <div className="flex flex-col gap-2 lg:items-center md:flex-row md:gap-3 lg:flex-col">
@@ -238,15 +255,19 @@ export default function ApproveSupplyRequestsPage() {
                           Thao tác
                         </div>
                         <div className="flex flex-col gap-2 w-full lg:w-auto">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleView(request.id) }}
-                            className="justify-start lg:justify-center"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Xem chi tiết
-                          </Button>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="group justify-between gap-2 w-full lg:w-auto [data-state=open]:bg-muted"
+                            >
+                              <span className="flex items-center gap-2">
+                                <Pencil className="h-4 w-4" />
+                                Sửa
+                              </span>
+                              <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                            </Button>
+                          </CollapsibleTrigger>
                           <Button
                             variant="outline"
                             size="sm"
