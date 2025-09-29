@@ -19,12 +19,6 @@ import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StatusBadge, type StatusType } from '@/components/ui/status-badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
-import { 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle
-} from '@/components/ui/dialog'
 import {
   Loader2,
   Edit3,
@@ -36,15 +30,22 @@ import {
   FileText,
   AlertCircle,
   RefreshCw,
-  CheckCircle,
-  XCircle,
   Copy,
-  ArrowRight
+  ArrowRight,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import type { SupplyRequestItem, Priority, ProcessRequestApprovalWithItemsRPCResult, SupplyRequestWithItems, Profile } from '@/types/database'
 import { useSupplyRequestDetail, useSupplyRequestStats } from '@/hooks/use-supply-request-detail'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 
 // Component props interface
 interface RequestDetailProps {
@@ -91,7 +92,6 @@ export function RequestDetail({
     isOwnRequest,
     updateItem,
     isUpdatingItem,
-    isProcessingApproval,
     processApproval,
     refetch
   } = useSupplyRequestDetail(requestId)
@@ -494,11 +494,82 @@ export function RequestDetail({
       )}
 
       {/* Custom Footer */}
-      {footerContent && (
-        <div>
+      {(footerContent || effectiveShowActions) && (
+        <div className="flex flex-col gap-4">
           {footerContent}
+
+          {effectiveShowActions && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setShowApprovalDialog('reject')
+                  setApprovalComments('')
+                }}>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Từ chối yêu cầu
+                </Button>
+                <Button onClick={() => {
+                  setShowApprovalDialog('approve')
+                  setApprovalComments('')
+                }}>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Phê duyệt yêu cầu
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      <Dialog open={showApprovalDialog !== null} onOpenChange={(open) => {
+        if (!open) {
+          setShowApprovalDialog(null)
+          setApprovalComments('')
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {showApprovalDialog === 'approve' ? 'Xác nhận phê duyệt yêu cầu' : 'Xác nhận từ chối yêu cầu'}
+            </DialogTitle>
+            <DialogDescription>
+              {showApprovalDialog === 'approve' ?
+                'Vui lòng xác nhận phê duyệt. Bạn có thể để lại ghi chú cho người yêu cầu.' :
+                'Vui lòng cung cấp lý do từ chối để người yêu cầu có thể cập nhật.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="approval-comments" className="text-sm font-medium">
+                Ghi chú
+              </Label>
+              <Textarea
+                id="approval-comments"
+                value={approvalComments}
+                onChange={(e) => setApprovalComments(e.target.value)}
+                placeholder={showApprovalDialog === 'approve' ? 'Ghi chú thêm (không bắt buộc)' : 'Ghi rõ lý do từ chối'}
+                rows={4}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setShowApprovalDialog(null)
+                setApprovalComments('')
+              }}>
+                Huỷ
+              </Button>
+              <Button
+                onClick={() => showApprovalDialog && handleApproval(showApprovalDialog)}
+                className={showApprovalDialog === 'approve' ? '' : 'bg-red-600 hover:bg-red-700'}
+              >
+                {showApprovalDialog === 'approve' ? 'Xác nhận phê duyệt' : 'Xác nhận từ chối'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

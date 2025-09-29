@@ -8,8 +8,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Eye } from 'lucide-react'
 import { StatusBadge, type StatusType } from '@/components/ui/status-badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
 import { format } from 'date-fns'
@@ -181,13 +181,27 @@ export function ApprovedRequestsTable({
                       {approver?.full_name || 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => onView?.(approval.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      {request?.id ? (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto px-0 text-sm font-medium"
+                          asChild
+                        >
+                          <Link href={`/supply-requests/${request.id}`}>
+                            Xem
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto px-0 text-sm font-medium"
+                          disabled
+                        >
+                          Xem
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 )

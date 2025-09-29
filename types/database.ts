@@ -2,6 +2,7 @@ import type {
   Tables,
   TablesInsert,
   TablesUpdate,
+  Json,
 } from './database.types.ts'
 
 // =============================================================================
@@ -212,7 +213,7 @@ export interface ApprovalHistoryRequestDetails {
   created_at: string | null
   updated_at: string | null
   completed_at: string | null
-  payload: any // JSON payload
+  payload: Json | null
   requested_date: string | null
   due_date: string | null
 }

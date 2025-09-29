@@ -192,8 +192,8 @@ function CreateSupplyRequestContent() {
         description: `Mã yêu cầu: ${result.request_number} • ${submitData.items.length} vật tư`,
         duration: 6000,
         action: {
-          label: 'Xem danh sách',
-          onClick: () => router.push('/supply-requests')
+          label: 'Xem lịch sử',
+          onClick: () => router.push('/supply-requests/history')
         }
       })
 
@@ -215,9 +215,9 @@ function CreateSupplyRequestContent() {
       // Clear any open item states
       setOpenItems({})
 
-      // Navigate to requests list after successful submission
+      // Navigate to request history after successful submission
       setTimeout(() => {
-        router.push('/supply-requests')
+        router.push('/supply-requests/history')
       }, 2000)
 
     } catch (error) {

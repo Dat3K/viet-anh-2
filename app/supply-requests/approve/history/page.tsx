@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useCallback } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   useReactTable,
@@ -16,7 +17,7 @@ import {
 import { AppLayout } from "@/components/layout/app-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -49,12 +50,10 @@ import {
   ArrowDown,
   History,
   Calendar,
-  Package,
   User
 } from "lucide-react"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { vi } from "date-fns/locale"
-import type { RequestApproval } from "@/types/database"
 import type { StatusType } from "@/components/ui/status-badge"
 import { useApprovedRequestHistory } from "@/hooks/useApprovedRequestHistory"
 import type { ApprovalHistoryEntry } from "@/types/database"
@@ -81,15 +80,27 @@ function MobileRequestCard({ request, onView }: { request: ApprovalHistoryEntry,
               {request.request?.request_number || 'N/A'}
             </p>
           </div>
-          <Button
-            variant="link"
-            size="sm"
-            onClick={() => requestId && onView(requestId)}
-            className="ml-2 h-auto px-0 text-xs font-medium"
-            disabled={!requestId}
-          >
-            Xem
-          </Button>
+          {requestId ? (
+            <Button
+              variant="link"
+              size="sm"
+              className="ml-2 h-auto px-0 text-xs font-medium"
+              asChild
+            >
+              <Link href={`/supply-requests/${requestId}`}>
+                Xem
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="link"
+              size="sm"
+              className="ml-2 h-auto px-0 text-xs font-medium"
+              disabled
+            >
+              Xem
+            </Button>
+          )}
         </div>
         
         <div className="flex flex-wrap gap-2 mb-3">
@@ -346,15 +357,27 @@ export default function ApprovedHistoryPage() {
       header: 'Thao tác',
       cell: ({ row }) => (
         <div className="min-w-[80px]">
-          <Button
-            variant="link"
-            size="sm"
-            onClick={() => handleView(row.original.request?.id ?? "")}
-            className="h-auto px-0 text-xs sm:text-sm font-medium"
-            disabled={!row.original.request?.id}
-          >
-            Xem
-          </Button>
+          {row.original.request?.id ? (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto px-0 text-xs sm:text-sm font-medium"
+              asChild
+            >
+              <Link href={`/supply-requests/${row.original.request.id}`}>
+                Xem
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto px-0 text-xs sm:text-sm font-medium"
+              disabled
+            >
+              Xem
+            </Button>
+          )}
         </div>
       ),
     },

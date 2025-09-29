@@ -39,8 +39,8 @@ export function HistoryFilters({ className, onFilterChange }: HistoryFiltersProp
     dateTo: null
   })
 
-  const handleFilterChange = (key: keyof Filters, value: any) => {
-    const newFilters = { ...filters, [key]: value }
+  const handleFilterChange = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+    const newFilters: Filters = { ...filters, [key]: value }
     setFilters(newFilters)
     onFilterChange?.(newFilters)
   }

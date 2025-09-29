@@ -25,7 +25,6 @@ export default function SupplyRequestDetailPage() {
 
   // Determine edit and action permissions based on request status
   const isPendingRequest = request?.status === 'pending'
-  const allowItemEditing = isPendingRequest ? (isOwnRequest || canApprove) : canApprove
   const showActions = isPendingRequest ? (isOwnRequest || canApprove) : canApprove
 
   if (!requestId) {
@@ -85,7 +84,7 @@ export default function SupplyRequestDetailPage() {
           mode="full"
           variant="page"
           showActions={showActions}
-          allowItemEditing={allowItemEditing}
+          allowItemEditing={false}
           onApprovalProcessed={handleApprovalProcessed}
         />
       </div>

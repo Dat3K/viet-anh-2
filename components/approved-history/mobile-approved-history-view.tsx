@@ -6,7 +6,7 @@ import { Eye, Calendar, User } from "lucide-react"
 import { MobileDataView, useTableToMobileData } from "@/components/ui/mobile-data-view"
 import { StatusBadge, type StatusType } from "@/components/ui/status-badge"
 import { PriorityBadge } from "@/components/ui/priority-badge"
-import type { ApprovalHistoryEntry } from '@/types/database'
+import type { ApprovalHistoryEntry, Priority } from '@/types/database'
 
 interface MobileApprovedHistoryViewProps {
   data: ApprovalHistoryEntry[]
@@ -40,7 +40,7 @@ export function MobileApprovedHistoryView({ data, isLoading, onView }: MobileApp
         variant: undefined,
       },
       {
-        content: item.request?.priority ? <PriorityBadge priority={item.request.priority as any} /> : null,
+        content: item.request?.priority ? <PriorityBadge priority={item.request.priority as Priority} /> : null,
         variant: undefined,
       },
     ],
