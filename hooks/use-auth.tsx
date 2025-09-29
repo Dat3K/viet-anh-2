@@ -41,6 +41,9 @@ export function useAuth() {
         options: {
           scopes: 'email openid profile',
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       })
       
